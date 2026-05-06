@@ -1,0 +1,9 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+/// Reads configuration from `.env` (loaded in [main]).
+/// Values are empty strings until you create `.env` from `.env.example`.
+abstract final class AppEnv {
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+}

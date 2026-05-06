@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+import 'core/app_env.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  assert(() {
+    if (AppEnv.supabaseUrl.contains('YOUR_PROJECT_REF')) {
+      debugPrint(
+        'khayal_platform: Supabase URL still placeholder — update .env (see README).',
+      );
+    }
+    return true;
+  }());
   runApp(const MyApp());
 }
 
