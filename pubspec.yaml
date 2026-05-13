@@ -60,6 +60,15 @@ flutter:
 
   assets:
     - .env
+    - assets/fonts/
+
+  fonts:
+    - family: KhayalRoboto
+      fonts:
+        - asset: assets/fonts/Roboto.ttf
+    - family: NotoNastaliqUrdu
+      fonts:
+        - asset: assets/fonts/NotoNastaliqUrdu.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:
