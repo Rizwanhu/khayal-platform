@@ -1,33 +1,659 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/navigation/app_routes.dart';
-import '../../common/widgets/screen_helpers.dart';
+import '../caregiver_colors.dart';
 
-class CaregiverDashboardScreen extends StatelessWidget {
+/// Caregiver overview: status, adherence chart, medications, FAB.
+class CaregiverDashboardScreen extends StatefulWidget {
   const CaregiverDashboardScreen({super.key});
 
   @override
+  State<CaregiverDashboardScreen> createState() => _CaregiverDashboardScreenState();
+}
+
+class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _entrance;
+
+  @override
+  void initState() {
+    super.initState();
+    _entrance = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 920),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _entrance.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    super.dispose();
+  }
+
+  Animation<double> _slot(int i) {
+    final start = (0.06 + i * 0.1).clamp(0.0, 0.72);
+    final end = (0.45 + i * 0.12).clamp(0.0, 1.0);
+    return CurvedAnimation(
+      parent: _entrance,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ScreenTemplate(
-      title: 'SCR-012 · Caregiver Dashboard',
-      subtitle: 'Overview for linked patient',
-      child: Column(
-        children: [
-          const InfoTile(label: 'Patient', value: 'Muhammad Ali'),
-          const InfoTile(label: 'Today Adherence', value: '66%'),
-          const InfoTile(label: 'Missed Doses', value: '1'),
-          const SizedBox(height: 14),
-          const QuickNavWrap(
-            routes: {
-              'Medication Management': AppRoutes.medicationManagement,
-              'Edit Medication': AppRoutes.editMedication,
-              'Alert History': AppRoutes.alertHistory,
-              'Add Medication': AppRoutes.addMedication,
-              'Settings': AppRoutes.settings,
-            },
+    return Scaffold(
+      backgroundColor: CaregiverColors.canvas,
+      floatingActionButton: ScaleTransition(
+        scale: Tween<double>(begin: 0, end: 1).animate(
+          CurvedAnimation(
+            parent: _entrance,
+            curve: const Interval(0.55, 1, curve: Curves.elasticOut),
+          ),
+        ),
+        child: FloatingActionButton(
+          backgroundColor: CaregiverColors.header,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            Navigator.pushNamed(context, AppRoutes.addMedication);
+          },
+          child: const Icon(Icons.add, size: 28),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _buildHeader(context)),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 100),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _animated(0, _todayStatusCard(context)),
+                const SizedBox(height: 16),
+                _animated(1, _weeklyAdherenceCard(context)),
+                const SizedBox(height: 16),
+                _animated(2, _overallAdherenceCard(context)),
+                const SizedBox(height: 16),
+                _animated(3, _medicationsCard(context)),
+              ]),
+            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _animated(int slot, Widget child) {
+    final a = _slot(slot);
+    return FadeTransition(
+      opacity: a,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.1),
+          end: Offset.zero,
+        ).animate(a),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final a = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0, 0.35, curve: Curves.easeOutCubic),
+    );
+    return FadeTransition(
+      opacity: a,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, -0.06),
+          end: Offset.zero,
+        ).animate(a),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(
+            20,
+            MediaQuery.of(context).padding.top + 14,
+            16,
+            22,
+          ),
+          decoration: BoxDecoration(
+            color: CaregiverColors.header,
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Dashboard',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 26,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Patient: Ahmad Khan',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            color: Colors.white.withValues(alpha: 0.92),
+                            fontSize: 15,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Material(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.notificationOverlay,
+                        );
+                      },
+                      child: const SizedBox(
+                        width: 46,
+                        height: 46,
+                        child: Icon(
+                          Icons.notifications_none_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade600,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: const Text(
+                        '1',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _todayStatusCard(BuildContext context) {
+    return _shadowCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Today's Status",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontFamily: 'KhayalRoboto',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                    color: CaregiverColors.textPrimary,
+                  ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: _statusColumn(
+                    context,
+                    value: '2',
+                    label: 'Taken',
+                    icon: Icons.check_rounded,
+                    iconColor: CaregiverColors.taken,
+                    disk: CaregiverColors.takenSoft,
+                  ),
+                ),
+                Expanded(
+                  child: _statusColumn(
+                    context,
+                    value: '1',
+                    label: 'Missed',
+                    icon: Icons.close_rounded,
+                    iconColor: CaregiverColors.missed,
+                    disk: CaregiverColors.missedSoft,
+                  ),
+                ),
+                Expanded(
+                  child: _statusColumn(
+                    context,
+                    value: '1',
+                    label: 'Upcoming',
+                    icon: Icons.schedule_rounded,
+                    iconColor: CaregiverColors.upcoming,
+                    disk: CaregiverColors.upcomingSoft,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statusColumn(
+    BuildContext context, {
+    required String value,
+    required String label,
+    required IconData icon,
+    required Color iconColor,
+    required Color disk,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => HapticFeedback.selectionClick(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            children: [
+              Text(
+                value,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontFamily: 'KhayalRoboto',
+                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
+                      color: iconColor,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(color: disk, shape: BoxShape.circle),
+                child: Icon(icon, color: iconColor, size: 26),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontFamily: 'KhayalRoboto',
+                      color: CaregiverColors.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _weeklyAdherenceCard(BuildContext context) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final heights = [0.55, 0.72, 0.48, 0.88, 0.62, 0.75, 0.9];
+    return _shadowCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Weekly Adherence',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontFamily: 'KhayalRoboto',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                          color: CaregiverColors.textPrimary,
+                        ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: CaregiverColors.takenSoft,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.trending_up_rounded,
+                        size: 16,
+                        color: CaregiverColors.taken,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '89%',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              fontFamily: 'KhayalRoboto',
+                              fontWeight: FontWeight.w800,
+                              color: CaregiverColors.taken,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              height: 120,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(7, (i) {
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Container(
+                            height: 4 + 86 * heights[i],
+                            decoration: BoxDecoration(
+                              color: CaregiverColors.chartBar,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            days[i],
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  color: CaregiverColors.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (context, c) {
+                return CustomPaint(
+                  size: Size(c.maxWidth, 1),
+                  painter: _DottedLinePainter(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _overallAdherenceCard(BuildContext context) {
+    return _shadowCard(
+      color: CaregiverColors.adherenceCard,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            right: -8,
+            top: -4,
+            child: Icon(
+              Icons.trending_up_rounded,
+              size: 96,
+              color: CaregiverColors.header.withValues(alpha: 0.12),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Overall Adherence Rate',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontFamily: 'KhayalRoboto',
+                        fontWeight: FontWeight.w700,
+                        color: CaregiverColors.textPrimary,
+                      ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '89%',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontFamily: 'KhayalRoboto',
+                        fontWeight: FontWeight.w800,
+                        fontSize: 40,
+                        color: CaregiverColors.header,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _medicationsCard(BuildContext context) {
+    return _shadowCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Medications',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontFamily: 'KhayalRoboto',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                          color: CaregiverColors.textPrimary,
+                        ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.medicationManagement,
+                    );
+                  },
+                  child: Text(
+                    'See all',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontFamily: 'KhayalRoboto',
+                          fontWeight: FontWeight.w700,
+                          color: CaregiverColors.header,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _medRow(
+              context,
+              en: 'Paracetamol',
+              ur: 'پیراسیٹامول',
+              dose: '1 tablet • 3x daily',
+              times: '08:00, 14:00, 20:00',
+              onTap: () => Navigator.pushNamed(context, AppRoutes.editMedication),
+            ),
+            const SizedBox(height: 10),
+            _medRow(
+              context,
+              en: 'Metformin',
+              ur: 'میٹفارمن',
+              dose: '2 tablets • 2x daily',
+              times: '09:00, 21:00',
+              onTap: () => Navigator.pushNamed(context, AppRoutes.editMedication),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pushNamed(context, AppRoutes.alertHistory);
+                },
+                icon: const Icon(Icons.history_rounded, size: 20),
+                label: const Text('Alert history'),
+                style: TextButton.styleFrom(
+                  foregroundColor: CaregiverColors.header,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _medRow(
+    BuildContext context, {
+    required String en,
+    required String ur,
+    required String dose,
+    required String times,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: CaregiverColors.pillRowBg,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      en,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: CaregiverColors.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ur,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontFamily: 'NotoNastaliqUrdu',
+                            fontSize: 16,
+                            height: 1.35,
+                            color: CaregiverColors.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      dose,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            color: CaregiverColors.textMuted,
+                            fontSize: 13,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                times,
+                textAlign: TextAlign.right,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontFamily: 'KhayalRoboto',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: CaregiverColors.textMuted,
+                      height: 1.3,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _shadowCard({required Widget child, Color color = CaregiverColors.card}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _DottedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = CaregiverColors.fieldBorder.withValues(alpha: 0.6)
+          ..strokeWidth = 1;
+    const dash = 4.0;
+    const gap = 4.0;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, 0), Offset(x + dash, 0), paint);
+      x += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
