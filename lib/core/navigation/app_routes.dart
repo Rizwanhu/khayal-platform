@@ -17,6 +17,7 @@ import '../../screens/onboarding/splash_screen.dart';
 import '../../screens/patient/dashboard/patient_home_screen.dart';
 import '../../screens/patient/history/patient_history_screen.dart';
 import '../../screens/patient/medication/dose_confirmation_screen.dart';
+import '../../screens/patient/medication/dose_taken_success_screen.dart';
 import '../../screens/patient/medication/medication_detail_screen.dart';
 import '../../screens/patient/notification/notification_overlay_screen.dart';
 import '../../screens/settings/settings_screen.dart';
@@ -31,6 +32,7 @@ abstract final class AppRoutes {
   static const otpLink = '/otp-link';
   static const patientHome = '/patient-home';
   static const doseConfirmation = '/dose-confirmation';
+  static const doseTakenSuccess = '/dose-taken-success';
   static const medicationDetail = '/medication-detail';
   static const patientHistory = '/patient-history';
   static const caregiverDashboard = '/caregiver-dashboard';
@@ -54,6 +56,7 @@ final Map<String, WidgetBuilder> appRoutes = {
   AppRoutes.otpLink: (_) => const OtpLinkScreen(),
   AppRoutes.patientHome: (_) => const PatientHomeScreen(),
   AppRoutes.doseConfirmation: (_) => const DoseConfirmationScreen(),
+  AppRoutes.doseTakenSuccess: (_) => const DoseTakenSuccessScreen(),
   AppRoutes.medicationDetail: (_) => const MedicationDetailScreen(),
   AppRoutes.patientHistory: (_) => const PatientHistoryScreen(),
   AppRoutes.caregiverDashboard: (_) => const CaregiverDashboardScreen(),
