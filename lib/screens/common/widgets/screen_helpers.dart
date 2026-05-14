@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/i18n/app_language.dart';
 import '../../../core/theme/app_theme.dart';
 
 class ScreenTemplate extends StatelessWidget {
@@ -120,15 +121,16 @@ class MedicationCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              nameUrdu,
+              AppLanguageState.pick(en: nameEnglish, ur: nameUrdu),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                fontFamily: 'NotoNastaliqUrdu',
+                fontFamily: AppLanguageState.isUrdu
+                    ? 'NotoNastaliqUrdu'
+                    : 'KhayalRoboto',
                 height: 1.7,
               ),
             ),
-            Text(nameEnglish, style: const TextStyle(color: Colors.black54)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

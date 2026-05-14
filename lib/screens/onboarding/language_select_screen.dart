@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/app_language.dart';
 import '../../core/navigation/app_routes.dart';
 
 /// Language select: off-white canvas, Urdu wordmark, bilingual prompt, two CTA pills.
@@ -61,7 +62,10 @@ class LanguageSelectScreen extends StatelessWidget {
                 foreground: Colors.white,
                 fontFamily: 'NotoNastaliqUrdu',
                 fontSize: 22,
-                onTap: () => Navigator.pushNamed(context, AppRoutes.roleSelect),
+                onTap: () {
+                  AppLanguageState.setLanguage(AppLanguage.urdu);
+                  Navigator.pushNamed(context, AppRoutes.roleSelect);
+                },
               ),
               const SizedBox(height: 16),
               _LanguagePill(
@@ -71,7 +75,10 @@ class LanguageSelectScreen extends StatelessWidget {
                 fontFamily: 'KhayalRoboto',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                onTap: () => Navigator.pushNamed(context, AppRoutes.roleSelect),
+                onTap: () {
+                  AppLanguageState.setLanguage(AppLanguage.english);
+                  Navigator.pushNamed(context, AppRoutes.roleSelect);
+                },
               ),
               const SizedBox(height: 36),
             ],

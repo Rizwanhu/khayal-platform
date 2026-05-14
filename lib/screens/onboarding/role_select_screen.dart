@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/backend/app_session.dart';
 import '../../core/navigation/app_routes.dart';
 
 /// Role select: warm neutral canvas, header, bordered Patient / Caregiver cards.
@@ -15,6 +16,9 @@ class RoleSelectScreen extends StatelessWidget {
   static const Color _caregiverBorder = Color(0xFFC99A72);
   static const Color _caregiverIconBg = Color(0xFFF9F2EB);
   static const Color _caregiverIcon = Color(0xFFC17F4A);
+  static const Color _doctorBorder = Color(0xFF6B8E7D);
+  static const Color _doctorIconBg = Color(0xFFEAF3EE);
+  static const Color _doctorIcon = Color(0xFF4E7060);
   static const Color _cardSubtitle = Color(0xFF9E9E9E);
 
   @override
@@ -22,36 +26,40 @@ class RoleSelectScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: _canvas,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 28),
-              Text(
-                'Who are you?',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
-                      color: _title,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Select your role',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      color: _subtitle,
-                    ),
-              ),
-              Expanded(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 28),
+                    Text(
+                      'Who are you?',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(
+                        fontFamily: 'KhayalRoboto',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 24,
+                        color: _title,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Select your role',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontFamily: 'KhayalRoboto',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: _subtitle,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     _RoleCard(
                       borderColor: _patientBorder,
                       iconBackground: _patientIconBg,
@@ -59,8 +67,10 @@ class RoleSelectScreen extends StatelessWidget {
                       iconColor: _patientIcon,
                       title: 'Patient',
                       subtitle: 'I take medications',
-                      onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.patientHome),
+                      onTap: () {
+                        AppSession.setPendingRole(AppRole.patient);
+                        Navigator.pushNamed(context, AppRoutes.otpLink);
+                      },
                     ),
                     const SizedBox(height: 18),
                     _RoleCard(
@@ -70,16 +80,30 @@ class RoleSelectScreen extends StatelessWidget {
                       iconColor: _caregiverIcon,
                       title: 'Caregiver',
                       subtitle: 'I help manage medications',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRoutes.caregiverDashboard,
-                      ),
+                      onTap: () {
+                        AppSession.setPendingRole(AppRole.caregiver);
+                        Navigator.pushNamed(context, AppRoutes.otpLink);
+                      },
                     ),
+                    const SizedBox(height: 18),
+                    _RoleCard(
+                      borderColor: _doctorBorder,
+                      iconBackground: _doctorIconBg,
+                      icon: Icons.medical_services_rounded,
+                      iconColor: _doctorIcon,
+                      title: 'Doctor',
+                      subtitle: 'I review patient history',
+                      onTap: () {
+                        AppSession.setPendingRole(AppRole.doctor);
+                        Navigator.pushNamed(context, AppRoutes.otpLink);
+                      },
+                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -136,21 +160,21 @@ class _RoleCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
-                      color: RoleSelectScreen._title,
-                    ),
+                  fontFamily: 'KhayalRoboto',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  color: RoleSelectScreen._title,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontSize: 14,
-                      color: RoleSelectScreen._cardSubtitle,
-                    ),
+                  fontFamily: 'KhayalRoboto',
+                  fontSize: 14,
+                  color: RoleSelectScreen._cardSubtitle,
+                ),
               ),
             ],
           ),

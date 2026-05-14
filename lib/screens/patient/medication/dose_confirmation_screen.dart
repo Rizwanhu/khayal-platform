@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/backend/app_session.dart';
+import '../../../core/backend/backend.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../widgets/dose_reminder_panel.dart';
 
@@ -46,7 +49,26 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
     super.dispose();
   }
 
-  void _onTookIt() {
+  Future<void> _onTookIt() async {
+    final patientId =
+        AppSession.selectedPatientId ??
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
+    if (patientId != null && patientId.isNotEmpty) {
+      try {
+        final meds = await Backend.repo.getMedicationsForPatient(patientId);
+        if (meds.isNotEmpty) {
+          await Backend.repo.confirmDose(
+            patientId: patientId,
+            medicationId: meds.first.id,
+            status: 'taken',
+          );
+        }
+      } catch (_) {
+        // Keep flow non-blocking for UI.
+      }
+    }
+    if (!mounted) return;
     Navigator.pushReplacementNamed(context, AppRoutes.doseTakenSuccess);
   }
 

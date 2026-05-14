@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/app_env.dart';
+import '../../core/backend/app_session.dart';
+import '../../core/backend/backend.dart';
 import '../../core/navigation/app_routes.dart';
 
-/// Caregiver OTP link — six cells, sage CTA, entrance + focus + press motion.
+/// Phone OTP login/registration for selected role.
 class OtpLinkScreen extends StatefulWidget {
   const OtpLinkScreen({super.key});
 
@@ -32,11 +36,19 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
   final List<TextEditingController> _digitControllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _digitFocus = List.generate(6, (_) => FocusNode());
+  final TextEditingController _phoneController = TextEditingController();
 
   double _buttonScale = 1;
+  bool _sendingOtp = false;
+  bool _verifyingOtp = false;
+  bool _otpSent = false;
 
   bool get _isComplete =>
       _digitControllers.every((c) => c.text.trim().isNotEmpty);
+
+  String get _otpCode => _digitControllers.map((e) => e.text).join();
+
+  AppRole get _role => AppSession.currentRole ?? AppRole.patient;
 
   @override
   void initState() {
@@ -99,6 +111,7 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
     for (final c in _digitControllers) {
       c.dispose();
     }
+    _phoneController.dispose();
     _entranceController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -136,9 +149,140 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
     setState(() {});
   }
 
-  void _linkAccount() {
-    if (!_isComplete) return;
-    Navigator.pushNamed(context, AppRoutes.caregiverDashboard);
+  String _normalizedPhone() {
+    final raw = _phoneController.text.trim().replaceAll(' ', '');
+    return raw.startsWith('+') ? raw : '+$raw';
+  }
+
+  Future<void> _sendOtp() async {
+    if (AppEnv.devOtpBypass) {
+      if (!mounted) return;
+      setState(() => _otpSent = true);
+      _snack(
+        'Dev bypass: SMS disabled. Enter any 6 digits, then Verify & Continue.',
+      );
+      return;
+    }
+
+    final phone = _normalizedPhone();
+    if (phone.length < 8) {
+      _snack('Enter valid phone number with country code.');
+      return;
+    }
+    setState(() => _sendingOtp = true);
+    try {
+      await Supabase.instance.client.auth.signInWithOtp(phone: phone);
+      if (!mounted) return;
+      setState(() => _otpSent = true);
+      _snack('OTP sent successfully.');
+      _digitFocus.first.requestFocus();
+    } on AuthException catch (e) {
+      _snack(e.message);
+    } catch (e) {
+      _snack('Failed to send OTP: $e');
+    } finally {
+      if (mounted) setState(() => _sendingOtp = false);
+    }
+  }
+
+  Future<void> _verifyOtpAndContinue() async {
+    if (!_otpSent) {
+      await _sendOtp();
+      return;
+    }
+    if (!_isComplete) {
+      _snack('Enter 6-digit OTP code.');
+      return;
+    }
+
+    setState(() => _verifyingOtp = true);
+    try {
+      User? user;
+
+      if (AppEnv.devOtpBypass) {
+        final creds = AppEnv.bypassEmailPasswordForRole(_role);
+        if (creds == null) {
+          _snack(
+            'DEV_OTP_BYPASS is on but .env is missing DEV_BYPASS_*_EMAIL / PASSWORD for this role.',
+          );
+          return;
+        }
+        final res = await Supabase.instance.client.auth.signInWithPassword(
+          email: creds.$1,
+          password: creds.$2,
+        );
+        user = res.user ?? Supabase.instance.client.auth.currentUser;
+      } else {
+        final response = await Supabase.instance.client.auth.verifyOTP(
+          phone: _normalizedPhone(),
+          token: _otpCode,
+          type: OtpType.sms,
+        );
+        user = response.user ?? Supabase.instance.client.auth.currentUser;
+      }
+
+      final resolvedUser = user;
+      if (resolvedUser == null) {
+        _snack('OTP verification failed. Try again.');
+        return;
+      }
+
+      final phoneForProfile = () {
+        final p = _normalizedPhone();
+        return p.length >= 8 ? p : null;
+      }();
+
+      await Backend.repo.upsertProfile(
+        userId: resolvedUser.id,
+        role: _role.name,
+        fullName: _role == AppRole.caregiver ? 'New Caregiver' : 'New User',
+        phone: phoneForProfile,
+      );
+
+      AppSession.setRole(
+        role: _role,
+        userId: resolvedUser.id,
+        patientId: _role == AppRole.patient ? resolvedUser.id : null,
+      );
+
+      if (!mounted) return;
+      switch (_role) {
+        case AppRole.patient:
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.patientHome,
+            (route) => false,
+          );
+          break;
+        case AppRole.caregiver:
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.caregiverRegistration,
+            (route) => false,
+          );
+          break;
+        case AppRole.doctor:
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.doctorDashboard,
+            (route) => false,
+          );
+          break;
+      }
+    } on AuthException catch (e) {
+      _snack(e.message);
+    } catch (e) {
+      _snack('OTP verify failed: $e');
+    } finally {
+      if (mounted) setState(() => _verifyingOtp = false);
+    }
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
@@ -166,8 +310,33 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (AppEnv.devOtpBypass) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.amber.shade700),
+                              ),
+                              child: Text(
+                                'DEV: OTP bypass on — any 6 digits. Turn off DEV_OTP_BYPASS before release.',
+                                textAlign: TextAlign.center,
+                                style: textTheme.labelMedium?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.brown.shade900,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           Text(
-                            'Link to Patient',
+                            _otpSent ? 'Verify OTP' : 'Sign In with Phone',
                             textAlign: TextAlign.center,
                             style: textTheme.headlineSmall?.copyWith(
                               fontFamily: 'KhayalRoboto',
@@ -179,7 +348,9 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
                           ),
                           const SizedBox(height: 14),
                           Text(
-                            "Enter the 6-digit code shown on patient's phone",
+                            _otpSent
+                                ? 'Enter the 6-digit code sent to your phone'
+                                : 'Use your phone number to continue',
                             textAlign: TextAlign.center,
                             style: textTheme.bodyLarge?.copyWith(
                               fontFamily: 'KhayalRoboto',
@@ -190,6 +361,34 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
                             ),
                           ),
                           const SizedBox(height: 40),
+                          TextField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: '+923001234567',
+                              labelText: 'Phone Number',
+                              filled: true,
+                              fillColor: _cellFill,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: _cellBorderIdle,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: _cellBorderIdle,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: _sendingOtp ? null : _sendOtp,
+                            child: Text(_sendingOtp ? 'Sending...' : 'Send OTP'),
+                          ),
+                          const SizedBox(height: 18),
                           LayoutBuilder(
                             builder: (context, constraints) {
                               const gap = 10.0;
@@ -231,9 +430,15 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
                                     child: _LinkAccountButton(
                                       scale: _buttonScale,
                                       enabled: _isComplete,
+                                      label:
+                                          _verifyingOtp
+                                              ? 'Verifying...'
+                                              : _otpSent
+                                              ? 'Verify & Continue'
+                                              : 'Send OTP',
                                       mutedColor: _ctaMuted,
                                       readyColor: _ctaReady,
-                                      onTap: _linkAccount,
+                                      onTap: _verifyOtpAndContinue,
                                       onTapDown:
                                           () => setState(() {
                                             _buttonScale = 0.96;
@@ -345,6 +550,7 @@ class _LinkAccountButton extends StatelessWidget {
   const _LinkAccountButton({
     required this.scale,
     required this.enabled,
+    required this.label,
     required this.mutedColor,
     required this.readyColor,
     required this.onTap,
@@ -354,6 +560,7 @@ class _LinkAccountButton extends StatelessWidget {
 
   final double scale;
   final bool enabled;
+  final String label;
   final Color mutedColor;
   final Color readyColor;
   final VoidCallback onTap;
@@ -394,7 +601,7 @@ class _LinkAccountButton extends StatelessWidget {
             onTapUp: canTap ? (_) => onTapEnd() : null,
             child: Center(
               child: Text(
-                'Link Account',
+                label,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontFamily: 'KhayalRoboto',
                   fontWeight: FontWeight.w700,

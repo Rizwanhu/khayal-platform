@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/backend/backend.dart';
+import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
 
 /// Patient home — today's doses with animated list and floating summary pill.
@@ -18,6 +21,7 @@ class _MedSchedule {
     required this.nameEn,
     required this.nameUr,
     required this.time,
+    required this.doseEn,
     required this.doseUr,
     required this.status,
   });
@@ -25,6 +29,7 @@ class _MedSchedule {
   final String nameEn;
   final String nameUr;
   final String time;
+  final String doseEn;
   final String doseUr;
   final _MedStatus status;
 }
@@ -50,6 +55,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       nameEn: 'Paracetamol',
       nameUr: 'پیراسیٹامول',
       time: '08:00',
+      doseEn: '1 tablet',
       doseUr: '1 گولی',
       status: _MedStatus.upcoming,
     ),
@@ -57,6 +63,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       nameEn: 'Metformin',
       nameUr: 'میٹفارمن',
       time: '09:30',
+      doseEn: '1 tablet',
       doseUr: '1 گولی',
       status: _MedStatus.taken,
     ),
@@ -64,6 +71,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       nameEn: 'Vitamin D',
       nameUr: 'وٹامن ڈی',
       time: '12:00',
+      doseEn: '1 capsule',
       doseUr: '1 کیپسول',
       status: _MedStatus.taken,
     ),
@@ -71,6 +79,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       nameEn: 'Lisinopril',
       nameUr: 'لسینوپریل',
       time: '20:00',
+      doseEn: '1 tablet',
       doseUr: '1 گولی',
       status: _MedStatus.missed,
     ),
@@ -141,6 +150,48 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     }
   }
 
+  Future<void> _generatePatientLinkCode() async {
+    final phone = Supabase.instance.client.auth.currentUser?.phone;
+    if (phone == null || phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Phone not found in session. Login again with OTP.'),
+        ),
+      );
+      return;
+    }
+    try {
+      final code = await Backend.repo.createPatientLinkCode(patientPhone: phone);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Caregiver Link Code'),
+          content: Text(
+            code,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to generate code: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
@@ -165,6 +216,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                 onSettings: () => Navigator.pushNamed(context, AppRoutes.settings),
                 onHistory: () =>
                     Navigator.pushNamed(context, AppRoutes.patientHistory),
+                onGenerateCode: _generatePatientLinkCode,
               ),
               Expanded(
                 child: ListView.separated(
@@ -249,6 +301,7 @@ class _DashboardHeader extends StatelessWidget {
     required this.onNotifications,
     required this.onSettings,
     required this.onHistory,
+    required this.onGenerateCode,
   });
 
   final double topPadding;
@@ -256,6 +309,7 @@ class _DashboardHeader extends StatelessWidget {
   final VoidCallback onNotifications;
   final VoidCallback onSettings;
   final VoidCallback onHistory;
+  final VoidCallback onGenerateCode;
 
   @override
   Widget build(BuildContext context) {
@@ -294,6 +348,14 @@ class _DashboardHeader extends StatelessWidget {
                         ),
                   ),
                 ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Link code',
+              onPressed: onGenerateCode,
+              icon: Icon(
+                Icons.password_rounded,
+                color: Colors.white.withValues(alpha: 0.92),
               ),
             ),
             IconButton(
@@ -382,7 +444,10 @@ class _MedicineCardState extends State<_MedicineCard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item.nameEn,
+                                    AppLanguageState.pick(
+                                      en: item.nameEn,
+                                      ur: item.nameUr,
+                                    ),
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -391,19 +456,6 @@ class _MedicineCardState extends State<_MedicineCard> {
                                           fontWeight: FontWeight.w700,
                                           fontSize: 17,
                                           color: const Color(0xFF1C1C1C),
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item.nameUr,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          fontFamily: 'NotoNastaliqUrdu',
-                                          fontSize: 17,
-                                          height: 1.45,
-                                          color: const Color(0xFF2B2B2B),
                                         ),
                                   ),
                                 ],
@@ -436,12 +488,17 @@ class _MedicineCardState extends State<_MedicineCard> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              item.doseUr,
+                              AppLanguageState.pick(
+                                en: item.doseEn,
+                                ur: item.doseUr,
+                              ),
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
                                   ?.copyWith(
-                                    fontFamily: 'NotoNastaliqUrdu',
+                                    fontFamily: AppLanguageState.isUrdu
+                                        ? 'NotoNastaliqUrdu'
+                                        : 'KhayalRoboto',
                                     fontSize: 15,
                                     height: 1.3,
                                     color: const Color(0xFF5C5C5C),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
 
@@ -571,21 +572,13 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      en,
+                      AppLanguageState.pick(en: en, ur: ur),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontFamily: 'KhayalRoboto',
+                            fontFamily: AppLanguageState.isUrdu
+                                ? 'NotoNastaliqUrdu'
+                                : 'KhayalRoboto',
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
-                            color: CaregiverColors.textPrimary,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      ur,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontFamily: 'NotoNastaliqUrdu',
-                            fontSize: 16,
-                            height: 1.35,
                             color: CaregiverColors.textPrimary,
                           ),
                     ),

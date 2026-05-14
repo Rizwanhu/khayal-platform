@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/backend/app_session.dart';
+import '../../../core/backend/backend.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
+import 'medication_photo_widgets.dart';
 
 /// Add medication — sage app bar, cream form, animated fields, photo slot.
 class AddMedicationScreen extends StatefulWidget {
@@ -25,6 +29,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
 
   double _saveScale = 1;
   double _uploadScale = 1;
+  bool _saving = false;
+
+  Uint8List? _pickedPhotoBytes;
+  String? _pickedPhotoMime;
 
   static const _types = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
   static const _frequencies = ['Daily', 'Twice daily', 'Three times daily', 'Weekly'];
@@ -149,14 +157,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontFamily: 'KhayalRoboto', fontWeight: FontWeight.w800),
                   ),
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Medication saved (demo).'), behavior: SnackBarBehavior.floating),
-                    );
-                    Navigator.pushNamed(context, AppRoutes.medicationManagement);
-                  },
-                  child: const Text('Save Medication'),
+                  onPressed: _saving
+                      ? null
+                      : () async {
+                          HapticFeedback.mediumImpact();
+                          await _saveMedication(context);
+                        },
+                  child: Text(_saving ? 'Saving...' : 'Save Medication'),
                 ),
               ),
             ),
@@ -177,10 +184,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () {
+                  onTap: () async {
                     HapticFeedback.selectionClick();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Photo picker would open here.'), behavior: SnackBarBehavior.floating),
+                    await showMedicationPhotoPickerSheet(
+                      context,
+                      onPicked: (bytes, mime) {
+                        setState(() {
+                          _pickedPhotoBytes = bytes;
+                          _pickedPhotoMime = mime;
+                        });
+                      },
                     );
                   },
                   child: CustomPaint(
@@ -188,17 +201,53 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
                       color: CaregiverColors.fieldBorder,
                       radius: 16,
                     ),
-                    child: const SizedBox(
+                    child: SizedBox(
                       height: 140,
                       width: double.infinity,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.photo_camera_outlined, size: 40, color: CaregiverColors.textMuted),
-                          SizedBox(height: 10),
-                          Text('Upload Photo', style: TextStyle(fontFamily: 'KhayalRoboto', fontWeight: FontWeight.w600, color: CaregiverColors.textMuted)),
-                        ],
-                      ),
+                      child: _pickedPhotoBytes != null
+                          ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                MedicationMemoryPhotoPreview(
+                                  bytes: _pickedPhotoBytes!,
+                                  height: 140,
+                                  borderRadius: 16,
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Material(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: IconButton(
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                                      onPressed: () {
+                                        setState(() {
+                                          _pickedPhotoBytes = null;
+                                          _pickedPhotoMime = null;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.photo_camera_outlined, size: 40, color: CaregiverColors.textMuted),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Upload Photo',
+                                  style: TextStyle(
+                                    fontFamily: 'KhayalRoboto',
+                                    fontWeight: FontWeight.w600,
+                                    color: CaregiverColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),
@@ -253,6 +302,93 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
         child: child,
       ),
     );
+  }
+
+  Future<void> _saveMedication(BuildContext context) async {
+    final caregiverId =
+        AppSession.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+    var patientId = AppSession.selectedPatientId;
+
+    if (caregiverId == null || caregiverId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sign in as caregiver first (phone OTP).'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (patientId == null || patientId.isEmpty) {
+      patientId = await Backend.repo.getFirstPatientForCaregiver(caregiverId);
+      AppSession.selectedPatientId = patientId;
+    }
+
+    if (patientId == null || patientId.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No linked patient found for caregiver.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final medId = await Backend.repo.createMedication(
+        patientId: patientId,
+        createdBy: caregiverId,
+        urduName: _urdu.text.trim(),
+        englishName: _english.text.trim(),
+        doseAmountRaw: _dose.text.trim().split(' ').first,
+        doseUnit: _type,
+        medicationType: _type.toLowerCase(),
+        timesCsv: _times.text.trim(),
+      );
+      if (medId != null &&
+          _pickedPhotoBytes != null &&
+          _pickedPhotoMime != null &&
+          _pickedPhotoMime!.isNotEmpty) {
+        await Backend.repo.uploadMedicationPhotoAndSave(
+          patientId: patientId,
+          medicationId: medId,
+          bytes: _pickedPhotoBytes!,
+          contentType: _pickedPhotoMime!,
+        );
+      }
+      if (medId == null) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not create medication (no id returned).'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Medication saved successfully.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pushNamed(context, AppRoutes.medicationManagement);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Save failed: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
   }
 }
 

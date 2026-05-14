@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/backend/backend.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
+import 'medication_photo_widgets.dart';
 
 /// Edit medication — dynamic times, dashed photo zone, sticky save bar.
 class EditMedicationScreen extends StatefulWidget {
@@ -28,6 +30,14 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
 
   static const _types = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
   static const _frequencies = ['Daily', 'Twice daily', 'Three times daily', 'Weekly'];
+  String? _medicationId;
+  String? _patientId;
+  String? _existingImagePath;
+  Uint8List? _newPhotoBytes;
+  String? _newPhotoMime;
+  bool _loading = true;
+  bool _saving = false;
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -60,6 +70,58 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
       parent: _entrance,
       curve: Interval(start, end, curve: Curves.easeOutCubic),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    final arg = ModalRoute.of(context)?.settings.arguments;
+    if (arg is String && arg.isNotEmpty) {
+      _medicationId = arg;
+      _loadMedication(arg);
+    } else {
+      _loading = false;
+    }
+  }
+
+  Future<void> _loadMedication(String medicationId) async {
+    try {
+      final med = await Backend.repo.getMedicationById(medicationId);
+      if (med == null) {
+        setState(() => _loading = false);
+        return;
+      }
+      setState(() {
+        _urdu.text = med.nameUr;
+        _english.text = med.nameEn;
+        _dose.text = med.doseAmount;
+        _patientId = med.patientId;
+        _existingImagePath = med.imageStoragePath;
+        _newPhotoBytes = null;
+        _newPhotoMime = null;
+        _type = _types.contains(_capitalize(med.doseUnit))
+            ? _capitalize(med.doseUnit)
+            : _type;
+        final normalizedType = _capitalize(med.medicationType);
+        if (_types.contains(normalizedType)) _type = normalizedType;
+        _times
+          ..clear()
+          ..addAll(
+            med.times
+                .map(_parseTimeOfDay)
+                .whereType<TimeOfDay>()
+                .toList(),
+          );
+        if (_times.isEmpty) {
+          _times.add(const TimeOfDay(hour: 8, minute: 0));
+        }
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
   }
 
   Future<void> _pickTime(int index) async {
@@ -149,6 +211,12 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: CaregiverColors.canvasForm,
       appBar: AppBar(
@@ -267,20 +335,94 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
                       borderRadius: BorderRadius.circular(16),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: () => HapticFeedback.selectionClick(),
+                        onTap: () async {
+                          HapticFeedback.selectionClick();
+                          await showMedicationPhotoPickerSheet(
+                            context,
+                            onPicked: (bytes, mime) {
+                              setState(() {
+                                _newPhotoBytes = bytes;
+                                _newPhotoMime = mime;
+                              });
+                            },
+                          );
+                        },
                         child: CustomPaint(
                           foregroundPainter: _DashedRectPainter(color: CaregiverColors.fieldBorder, radius: 16),
-                          child: const SizedBox(
+                          child: SizedBox(
                             height: 120,
                             width: double.infinity,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.photo_camera_outlined, size: 36, color: CaregiverColors.textMuted),
-                                SizedBox(height: 8),
-                                Text('Upload Photo', style: TextStyle(fontFamily: 'KhayalRoboto', fontWeight: FontWeight.w600, color: CaregiverColors.textMuted)),
-                              ],
-                            ),
+                            child: _newPhotoBytes != null
+                                ? Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      MedicationMemoryPhotoPreview(
+                                        bytes: _newPhotoBytes!,
+                                        height: 120,
+                                        borderRadius: 16,
+                                      ),
+                                      Positioned(
+                                        top: 6,
+                                        right: 6,
+                                        child: Material(
+                                          color: Colors.black54,
+                                          borderRadius: BorderRadius.circular(20),
+                                          child: IconButton(
+                                            visualDensity: VisualDensity.compact,
+                                            icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                                            onPressed: () {
+                                              setState(() {
+                                                _newPhotoBytes = null;
+                                                _newPhotoMime = null;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : _existingImagePath != null && _existingImagePath!.isNotEmpty
+                                    ? Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(8),
+                                            child: Center(
+                                              child: MedicationSignedThumb(
+                                                storagePath: _existingImagePath!,
+                                                size: 96,
+                                                borderRadius: 12,
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 6,
+                                            right: 6,
+                                            child: Text(
+                                              'Tap to replace',
+                                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                                    fontFamily: 'KhayalRoboto',
+                                                    color: CaregiverColors.textMuted,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.photo_camera_outlined, size: 36, color: CaregiverColors.textMuted),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            'Upload Photo',
+                                            style: TextStyle(
+                                              fontFamily: 'KhayalRoboto',
+                                              fontWeight: FontWeight.w600,
+                                              color: CaregiverColors.textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                           ),
                         ),
                       ),
@@ -317,14 +459,13 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontFamily: 'KhayalRoboto', fontWeight: FontWeight.w800),
                         ),
-                        onPressed: () {
-                          HapticFeedback.mediumImpact();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Medication updated (demo).'), behavior: SnackBarBehavior.floating),
-                          );
-                          Navigator.pushNamed(context, AppRoutes.medicationManagement);
-                        },
-                        child: const Text('Save Medication'),
+                        onPressed: _saving
+                            ? null
+                            : () async {
+                                HapticFeedback.mediumImpact();
+                                await _saveMedication(context);
+                              },
+                        child: Text(_saving ? 'Saving...' : 'Save Medication'),
                       ),
                     ),
                   ),
@@ -335,6 +476,85 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _saveMedication(BuildContext context) async {
+    final medId = _medicationId;
+    if (medId == null || medId.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Medication ID missing.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await Backend.repo.updateMedication(
+        medicationId: medId,
+        urduName: _urdu.text.trim(),
+        englishName: _english.text.trim(),
+        doseAmountRaw: _dose.text.trim(),
+        doseUnit: _type,
+        medicationType: _type.toLowerCase(),
+        times: _times
+            .map(
+              (t) =>
+                  '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+            )
+            .toList(),
+      );
+      final pid = _patientId;
+      if (pid != null &&
+          pid.isNotEmpty &&
+          _newPhotoBytes != null &&
+          _newPhotoMime != null &&
+          _newPhotoMime!.isNotEmpty) {
+        await Backend.repo.uploadMedicationPhotoAndSave(
+          patientId: pid,
+          medicationId: medId,
+          bytes: _newPhotoBytes!,
+          contentType: _newPhotoMime!,
+        );
+      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Medication updated successfully.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pushNamed(context, AppRoutes.medicationManagement);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Update failed: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  TimeOfDay? _parseTimeOfDay(String raw) {
+    final parts = raw.split(':');
+    if (parts.length < 2) return null;
+    final hh = int.tryParse(parts[0]);
+    final mm = int.tryParse(parts[1]);
+    if (hh == null || mm == null) return null;
+    return TimeOfDay(hour: hh, minute: mm);
+  }
+
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return '${text[0].toUpperCase()}${text.substring(1)}';
   }
 }
 

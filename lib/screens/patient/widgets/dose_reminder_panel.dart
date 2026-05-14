@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/i18n/app_language.dart';
+
 /// Shared reminder card: bell, med info, primary + snooze actions.
 class DoseReminderPanel extends StatefulWidget {
   const DoseReminderPanel({
@@ -140,21 +142,13 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.nameEn,
+                  AppLanguageState.pick(en: widget.nameEn, ur: widget.nameUr),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontFamily: 'KhayalRoboto',
+                        fontFamily: AppLanguageState.isUrdu
+                            ? 'NotoNastaliqUrdu'
+                            : 'KhayalRoboto',
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
-                        color: _textPrimary,
-                      ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  widget.nameUr,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontFamily: 'NotoNastaliqUrdu',
-                        fontSize: 18,
-                        height: 1.4,
                         color: _textPrimary,
                       ),
                 ),
@@ -178,9 +172,11 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                     ),
                     const SizedBox(width: 14),
                     Text(
-                      widget.doseUr,
+                      AppLanguageState.pick(en: '1 dose', ur: widget.doseUr),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontFamily: 'NotoNastaliqUrdu',
+                            fontFamily: AppLanguageState.isUrdu
+                                ? 'NotoNastaliqUrdu'
+                                : 'KhayalRoboto',
                             fontSize: 15,
                             height: 1.25,
                             color: _textPrimary,
