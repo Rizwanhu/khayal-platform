@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/backend/app_session.dart';
+import '../../core/i18n/app_language.dart';
+import '../../core/i18n/app_strings.dart';
 import '../../core/navigation/app_routes.dart';
 
 /// Role select: warm neutral canvas, header, bordered Patient / Caregiver cards.
@@ -37,23 +39,26 @@ class RoleSelectScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 28),
                     Text(
-                      'Who are you?',
+                      AppStrings.whoAreYou,
                       textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineSmall?.copyWith(
-                        fontFamily: 'KhayalRoboto',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 24,
-                        color: _title,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontFamily: AppLanguageState.isUrdu
+                                ? 'NotoNastaliqUrdu'
+                                : 'KhayalRoboto',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 24,
+                            color: _title,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Select your role',
+                      AppStrings.selectYourRole,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontFamily: 'KhayalRoboto',
+                        fontFamily: AppLanguageState.isUrdu
+                            ? 'NotoNastaliqUrdu'
+                            : 'KhayalRoboto',
                         fontSize: 16,
                         fontWeight: FontWeight.w400,
                         color: _subtitle,
@@ -65,8 +70,8 @@ class RoleSelectScreen extends StatelessWidget {
                       iconBackground: _patientIconBg,
                       icon: Icons.person_rounded,
                       iconColor: _patientIcon,
-                      title: 'Patient',
-                      subtitle: 'I take medications',
+                      title: AppStrings.patient,
+                      subtitle: AppStrings.patientSubtitle,
                       onTap: () {
                         AppSession.setPendingRole(AppRole.patient);
                         Navigator.pushNamed(context, AppRoutes.otpLink);
@@ -78,8 +83,8 @@ class RoleSelectScreen extends StatelessWidget {
                       iconBackground: _caregiverIconBg,
                       icon: Icons.people_alt_rounded,
                       iconColor: _caregiverIcon,
-                      title: 'Caregiver',
-                      subtitle: 'I help manage medications',
+                      title: AppStrings.caregiver,
+                      subtitle: AppStrings.caregiverSubtitle,
                       onTap: () {
                         AppSession.setPendingRole(AppRole.caregiver);
                         Navigator.pushNamed(context, AppRoutes.otpLink);
@@ -91,8 +96,8 @@ class RoleSelectScreen extends StatelessWidget {
                       iconBackground: _doctorIconBg,
                       icon: Icons.medical_services_rounded,
                       iconColor: _doctorIcon,
-                      title: 'Doctor',
-                      subtitle: 'I review patient history',
+                      title: AppStrings.doctor,
+                      subtitle: AppStrings.doctorSubtitle,
                       onTap: () {
                         AppSession.setPendingRole(AppRole.doctor);
                         Navigator.pushNamed(context, AppRoutes.otpLink);
@@ -160,7 +165,9 @@ class _RoleCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontFamily: 'KhayalRoboto',
+                  fontFamily: AppLanguageState.isUrdu
+                      ? 'NotoNastaliqUrdu'
+                      : 'KhayalRoboto',
                   fontWeight: FontWeight.w700,
                   fontSize: 20,
                   color: RoleSelectScreen._title,
@@ -171,7 +178,9 @@ class _RoleCard extends StatelessWidget {
                 subtitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontFamily: 'KhayalRoboto',
+                  fontFamily: AppLanguageState.isUrdu
+                      ? 'NotoNastaliqUrdu'
+                      : 'KhayalRoboto',
                   fontSize: 14,
                   color: RoleSelectScreen._cardSubtitle,
                 ),

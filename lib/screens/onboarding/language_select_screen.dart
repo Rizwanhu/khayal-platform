@@ -62,8 +62,9 @@ class LanguageSelectScreen extends StatelessWidget {
                 foreground: Colors.white,
                 fontFamily: 'NotoNastaliqUrdu',
                 fontSize: 22,
-                onTap: () {
-                  AppLanguageState.setLanguage(AppLanguage.urdu);
+                onTap: () async {
+                  await AppLanguageState.setLanguage(AppLanguage.urdu);
+                  if (!context.mounted) return;
                   Navigator.pushNamed(context, AppRoutes.roleSelect);
                 },
               ),
@@ -75,8 +76,9 @@ class LanguageSelectScreen extends StatelessWidget {
                 fontFamily: 'KhayalRoboto',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                onTap: () {
-                  AppLanguageState.setLanguage(AppLanguage.english);
+                onTap: () async {
+                  await AppLanguageState.setLanguage(AppLanguage.english);
+                  if (!context.mounted) return;
                   Navigator.pushNamed(context, AppRoutes.roleSelect);
                 },
               ),

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
+import '../../../core/medication/med_patient_context.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
 import 'medication_photo_widgets.dart';
@@ -403,31 +402,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
   }
 
   Future<void> _saveMedication(BuildContext context) async {
-    final caregiverId =
-        AppSession.currentUserId ??
-        Supabase.instance.client.auth.currentUser?.id;
-    var patientId = AppSession.selectedPatientId;
-
-    if (caregiverId == null || caregiverId.isEmpty) {
+    final actorId = MedPatientContext.actorId;
+    if (actorId == null || actorId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Sign in as caregiver first (phone OTP).'),
+          content: Text('Sign in first.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
-    if (patientId == null || patientId.isEmpty) {
-      patientId = await Backend.repo.getFirstPatientForCaregiver(caregiverId);
-      AppSession.selectedPatientId = patientId;
-    }
-
+    final patientId = await MedPatientContext.resolvePatientId();
     if (patientId == null || patientId.isEmpty) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No linked patient found for caregiver.'),
+        SnackBar(
+          content: Text(
+            MedPatientContext.isPatient
+                ? 'Could not save medication.'
+                : 'No linked patient found. Link a patient first.',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -439,7 +434,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
       final mappedType = _type == 'Liquid' ? 'syrup' : _type.toLowerCase();
       final medId = await Backend.repo.createMedication(
         patientId: patientId,
-        createdBy: caregiverId,
+        createdBy: actorId,
         urduName: _urdu.text.trim(),
         englishName: _english.text.trim(),
         doseAmountRaw: _dose.text.trim().split(' ').first,
@@ -477,7 +472,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
           behavior: SnackBarBehavior.floating,
         ),
       );
-      Navigator.pushNamed(context, AppRoutes.medicationManagement);
+      if (MedPatientContext.isPatient) {
+        Navigator.pop(context, true);
+      } else {
+        Navigator.pushNamed(context, AppRoutes.medicationManagement);
+      }
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

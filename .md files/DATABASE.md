@@ -227,11 +227,17 @@ alter table public.alert_events enable row level security;
 alter table public.push_tokens enable row level security;
 alter table public.otp_artifacts enable row level security;
 
--- Profiles: user can read/update own profile
+-- Profiles: user can read/insert/update own profile (id must match auth user)
 drop policy if exists profiles_select_own on public.profiles;
 create policy profiles_select_own
 on public.profiles for select
 using (id = auth.uid());
+
+-- Required for first login: app upserts a row that may not exist yet.
+drop policy if exists profiles_insert_own on public.profiles;
+create policy profiles_insert_own
+on public.profiles for insert
+with check (id = auth.uid());
 
 drop policy if exists profiles_update_own on public.profiles;
 create policy profiles_update_own
@@ -245,6 +251,9 @@ create policy push_tokens_own_all
 on public.push_tokens for all
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
+
+-- Caregiver link flow (patient link code + caregiver verify): see supabase/sql/linking_rls.sql
+-- Medications, schedules, dose logs: see supabase/sql/medications_rls.sql
 ```
 
 ---

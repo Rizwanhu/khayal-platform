@@ -7,8 +7,8 @@ import '../../../core/navigation/app_routes.dart';
 class DoseTakenSuccessScreen extends StatefulWidget {
   const DoseTakenSuccessScreen({
     super.key,
-    this.takenCount = 2,
-    this.totalCount = 3,
+    this.takenCount = 0,
+    this.totalCount = 0,
   });
 
   final int takenCount;

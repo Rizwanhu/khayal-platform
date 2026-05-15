@@ -20,6 +20,31 @@ class _CaregiverRegistrationScreenState
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _skipIfAlreadyRegistered();
+    });
+  }
+
+  Future<void> _skipIfAlreadyRegistered() async {
+    final caregiverId = AppSession.currentUserId;
+    if (caregiverId == null || caregiverId.isEmpty) return;
+    final complete = await Backend.repo.caregiverProfileIsComplete(caregiverId);
+    if (!complete || !mounted) return;
+    final patientId = await Backend.repo.getFirstPatientForCaregiver(caregiverId);
+    AppSession.setRole(
+      role: AppRole.caregiver,
+      userId: caregiverId,
+      patientId: patientId,
+    );
+    final route = patientId != null
+        ? AppRoutes.caregiverDashboard
+        : AppRoutes.patientProfileSetup;
+    Navigator.pushReplacementNamed(context, route);
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
@@ -60,7 +85,16 @@ class _CaregiverRegistrationScreenState
         relationship: _relationshipController.text.trim(),
       );
       if (!mounted) return;
-      Navigator.pushNamed(context, AppRoutes.patientProfileSetup);
+      final patientId = await Backend.repo.getFirstPatientForCaregiver(userId);
+      AppSession.setRole(
+        role: AppRole.caregiver,
+        userId: userId,
+        patientId: patientId,
+      );
+      final route = patientId != null
+          ? AppRoutes.caregiverDashboard
+          : AppRoutes.patientProfileSetup;
+      Navigator.pushNamed(context, route);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

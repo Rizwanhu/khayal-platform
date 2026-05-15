@@ -1,10 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/i18n/app_language.dart';
+import '../../../core/i18n/app_strings.dart';
+import '../../../core/reminders/medication_reminder_watcher.dart';
 import '../../../core/navigation/app_routes.dart';
+import '../../../core/time/medication_dose_status.dart';
+import '../../../core/time/pakistan_time.dart';
 
 /// Patient home — today's doses with animated list and floating summary pill.
 class PatientHomeScreen extends StatefulWidget {
@@ -14,28 +21,35 @@ class PatientHomeScreen extends StatefulWidget {
   State<PatientHomeScreen> createState() => _PatientHomeScreenState();
 }
 
-enum _MedStatus { taken, upcoming, missed }
+enum _MedStatus { taken, upcoming, dueSoon, missed }
 
 class _MedSchedule {
   const _MedSchedule({
+    required this.medicationId,
     required this.nameEn,
     required this.nameUr,
     required this.time,
     required this.doseEn,
     required this.doseUr,
     required this.status,
+    this.scheduleRaw,
   });
 
+  final String medicationId;
   final String nameEn;
   final String nameUr;
   final String time;
   final String doseEn;
   final String doseUr;
   final _MedStatus status;
+  final String? scheduleRaw;
 }
 
 class _PatientHomeScreenState extends State<PatientHomeScreen>
-    with TickerProviderStateMixin {
+    with
+        TickerProviderStateMixin,
+        MedicationReminderWatcherMixin,
+        WidgetsBindingObserver {
   static const Color _headerGreen = Color(0xFF608266);
   static const Color _contentBg = Color(0xFFF9F8F3);
   static const Color _summarySurface = Color(0xFFFEFCF8);
@@ -44,50 +58,21 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
 
   static const Color _takenIcon = Color(0xFF2E7D32);
   static const Color _upcomingIcon = Color(0xFFEF6C00);
+  static const Color _dueSoonIcon = Color(0xFFC62828);
   static const Color _missedIcon = Color(0xFFC62828);
 
   late final AnimationController _listController;
   late final AnimationController _summaryController;
 
-  /// Demo schedule — counts: 2 taken, 1 missed, 1 upcoming.
-  final List<_MedSchedule> _items = const [
-    _MedSchedule(
-      nameEn: 'Paracetamol',
-      nameUr: 'پیراسیٹامول',
-      time: '08:00',
-      doseEn: '1 tablet',
-      doseUr: '1 گولی',
-      status: _MedStatus.upcoming,
-    ),
-    _MedSchedule(
-      nameEn: 'Metformin',
-      nameUr: 'میٹفارمن',
-      time: '09:30',
-      doseEn: '1 tablet',
-      doseUr: '1 گولی',
-      status: _MedStatus.taken,
-    ),
-    _MedSchedule(
-      nameEn: 'Vitamin D',
-      nameUr: 'وٹامن ڈی',
-      time: '12:00',
-      doseEn: '1 capsule',
-      doseUr: '1 کیپسول',
-      status: _MedStatus.taken,
-    ),
-    _MedSchedule(
-      nameEn: 'Lisinopril',
-      nameUr: 'لسینوپریل',
-      time: '20:00',
-      doseEn: '1 tablet',
-      doseUr: '1 گولی',
-      status: _MedStatus.missed,
-    ),
-  ];
+  Timer? _statusRefreshTimer;
+  bool _loadingMeds = true;
+  List<_MedSchedule> _items = [];
+  Set<String> _takenTodayIds = {};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _listController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 880),
@@ -104,10 +89,115 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
         if (mounted) _summaryController.forward();
       });
     });
+    _loadMeds();
+    _statusRefreshTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _recomputeStatuses(),
+    );
+  }
+
+  void _recomputeStatuses() {
+    if (!mounted || _items.isEmpty) return;
+    setState(() {
+      _items = [
+        for (final e in _items)
+          _MedSchedule(
+            medicationId: e.medicationId,
+            nameEn: e.nameEn,
+            nameUr: e.nameUr,
+            time: e.time,
+            doseEn: e.doseEn,
+            doseUr: e.doseUr,
+            status: _takenTodayIds.contains(e.medicationId)
+                ? _MedStatus.taken
+                : _statusFromRaw(e.scheduleRaw),
+            scheduleRaw: e.scheduleRaw,
+          ),
+      ];
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadMeds();
+    }
+  }
+
+  Future<void> _loadMeds() async {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null || uid.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _loadingMeds = false;
+          _items = [];
+        });
+      }
+      syncMedicationReminders(const []);
+      return;
+    }
+    try {
+      final rows = await Backend.repo.getMedicationsForPatient(uid);
+      final takenIds = await Backend.repo.getTodayTakenMedicationIds(uid);
+      if (!mounted) return;
+      setState(() {
+        _takenTodayIds = takenIds;
+        _items = rows.map(_fromRecord).toList();
+        _loadingMeds = false;
+      });
+      syncMedicationReminders(rows);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadingMeds = false;
+        _items = [];
+      });
+      syncMedicationReminders(const []);
+    }
+  }
+
+  _MedSchedule _fromRecord(MedicationRecord r) {
+    final takenToday = _takenTodayIds.contains(r.id);
+    final scheduleRaws =
+        r.scheduleRaws.isNotEmpty ? r.scheduleRaws : [r.firstScheduleRaw];
+    final nextRaw =
+        MedicationDoseStatusLogic.nextActionableScheduleRaw(scheduleRaws) ??
+            r.firstScheduleRaw;
+    return _MedSchedule(
+      medicationId: r.id,
+      nameEn: r.nameEn,
+      nameUr: r.nameUr,
+      time: r.timeLabel,
+      doseEn: r.doseLabel,
+      doseUr: r.doseLabel,
+      status: takenToday
+          ? _MedStatus.taken
+          : _statusFromRaws(scheduleRaws),
+      scheduleRaw: nextRaw,
+    );
+  }
+
+  _MedStatus _statusFromRaws(Iterable<String?> schedules) {
+    return switch (MedicationDoseStatusLogic.fromScheduleRaws(schedules)) {
+      MedicationDoseStatus.upcoming => _MedStatus.upcoming,
+      MedicationDoseStatus.dueSoon => _MedStatus.dueSoon,
+      MedicationDoseStatus.missed => _MedStatus.missed,
+    };
+  }
+
+  _MedStatus _statusFromRaw(String? raw) {
+    return switch (MedicationDoseStatusLogic.fromScheduleRaw(raw)) {
+      MedicationDoseStatus.upcoming => _MedStatus.upcoming,
+      MedicationDoseStatus.dueSoon => _MedStatus.dueSoon,
+      MedicationDoseStatus.missed => _MedStatus.missed,
+    };
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _statusRefreshTimer?.cancel();
+    disposeMedicationReminders();
     _listController.dispose();
     _summaryController.dispose();
     super.dispose();
@@ -143,19 +233,43 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
   int _count(_MedStatus s) => _items.where((e) => e.status == s).length;
 
   void _openForItem(_MedSchedule item) {
-    if (item.status == _MedStatus.upcoming) {
-      Navigator.pushNamed(context, AppRoutes.doseConfirmation);
+    AppSession.pendingDoseReminder = PendingDoseReminder(
+      medicationId: item.medicationId,
+      nameEn: item.nameEn,
+      nameUr: item.nameUr,
+      timeDisplay: item.time,
+      doseUr: item.doseUr,
+      scheduleRaw: item.scheduleRaw,
+    );
+    if (item.status == _MedStatus.upcoming ||
+        item.status == _MedStatus.dueSoon) {
+      Navigator.pushNamed(context, AppRoutes.doseConfirmation)
+          .then((_) => _loadMeds());
     } else {
-      Navigator.pushNamed(context, AppRoutes.medicationDetail);
+      Navigator.pushNamed(
+        context,
+        AppRoutes.medicationDetail,
+        arguments: item.medicationId,
+      );
     }
   }
 
   Future<void> _generatePatientLinkCode() async {
-    final phone = Supabase.instance.client.auth.currentUser?.phone;
+    final userId = AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Session missing. Login again.')),
+      );
+      return;
+    }
+    final phone = await Backend.repo.resolvePatientLinkPhone(userId);
     if (phone == null || phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Phone not found in session. Login again with OTP.'),
+          content: Text(
+            'No phone on your profile. Sign in as patient with your phone number first.',
+          ),
         ),
       );
       return;
@@ -167,25 +281,24 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       if (!mounted) return;
       await showDialog<void>(
         context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: const Text('Caregiver Link Code'),
-              content: Text(
-                code,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
-                ),
-              ],
+        builder: (ctx) => AlertDialog(
+          title: const Text('Link code'),
+          content: Text(
+            'Share this code with your caregiver or doctor:\n\n$code',
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 4,
             ),
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -200,7 +313,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     final mq = MediaQuery.of(context);
     final topInset = mq.padding.top;
     final bottomInset = mq.padding.bottom;
-    final today = DateTime.now();
+    final today = PakistanTime.now();
 
     return Scaffold(
       backgroundColor: _contentBg,
@@ -212,20 +325,71 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
               _DashboardHeader(
                 topPadding: topInset,
                 dateLabel: _formatHeaderDate(today),
-                onNotifications:
-                    () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.notificationOverlay,
-                    ),
-                onSettings:
-                    () => Navigator.pushNamed(context, AppRoutes.settings),
-                onHistory:
-                    () =>
-                        Navigator.pushNamed(context, AppRoutes.patientHistory),
+                onNotifications: () {
+                  if (_items.isNotEmpty) {
+                    final upcoming = _items
+                        .where(
+                          (e) =>
+                              e.status == _MedStatus.upcoming ||
+                              e.status == _MedStatus.dueSoon,
+                        )
+                        .toList();
+                    final u = upcoming.isNotEmpty ? upcoming.first : _items.first;
+                    AppSession.pendingDoseReminder = PendingDoseReminder(
+                      medicationId: u.medicationId,
+                      nameEn: u.nameEn,
+                      nameUr: u.nameUr,
+                      timeDisplay: u.time,
+                      doseUr: u.doseUr,
+                      scheduleRaw: u.scheduleRaw,
+                    );
+                  }
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.notificationOverlay,
+                  );
+                },
+                onManageMeds: () async {
+                  await Navigator.pushNamed(
+                    context,
+                    AppRoutes.medicationManagement,
+                  );
+                  _loadMeds();
+                },
+                onSettings: () =>
+                    Navigator.pushNamed(context, AppRoutes.settings),
+                onHistory: () =>
+                    Navigator.pushNamed(context, AppRoutes.patientHistory),
                 onGenerateCode: _generatePatientLinkCode,
               ),
               Expanded(
-                child: ListView.separated(
+                child: _loadingMeds
+                    ? const Center(child: CircularProgressIndicator())
+                    : _items.isEmpty
+                    ? ListView(
+                        padding: EdgeInsets.fromLTRB(
+                          18,
+                          18,
+                          18,
+                          bottomInset + 112,
+                        ),
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        children: [
+                          const SizedBox(height: 48),
+                          Text(
+                            'No medicines scheduled yet.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  color: const Color(0xFF6B6B6B),
+                                ),
+                          ),
+                        ],
+                      )
+                    : ListView.separated(
                   padding: EdgeInsets.fromLTRB(18, 18, 18, bottomInset + 112),
                   physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics(),
@@ -268,19 +432,21 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                 curve: const Interval(0, 0.65, curve: Curves.easeOut),
               ),
               child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 1.15),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _summaryController,
-                    curve: Curves.easeOutCubic,
-                  ),
-                ),
+                position:
+                    Tween<Offset>(
+                      begin: const Offset(0, 1.15),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(
+                        parent: _summaryController,
+                        curve: Curves.easeOutCubic,
+                      ),
+                    ),
                 child: _FloatingSummaryBar(
                   taken: _count(_MedStatus.taken),
                   missed: _count(_MedStatus.missed),
-                  upcoming: _count(_MedStatus.upcoming),
+                  upcoming:
+                      _count(_MedStatus.upcoming) + _count(_MedStatus.dueSoon),
                 ),
               ),
             ),
@@ -296,6 +462,7 @@ class _DashboardHeader extends StatelessWidget {
     required this.topPadding,
     required this.dateLabel,
     required this.onNotifications,
+    required this.onManageMeds,
     required this.onSettings,
     required this.onHistory,
     required this.onGenerateCode,
@@ -304,6 +471,7 @@ class _DashboardHeader extends StatelessWidget {
   final double topPadding;
   final String dateLabel;
   final VoidCallback onNotifications;
+  final VoidCallback onManageMeds;
   final VoidCallback onSettings;
   final VoidCallback onHistory;
   final VoidCallback onGenerateCode;
@@ -325,9 +493,11 @@ class _DashboardHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Today's Medicines",
+                    AppStrings.todaysMedicines,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontFamily: 'KhayalRoboto',
+                      fontFamily: AppLanguageState.isUrdu
+                          ? 'NotoNastaliqUrdu'
+                          : 'KhayalRoboto',
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
@@ -348,7 +518,7 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Link code',
+              tooltip: AppStrings.linkCode,
               onPressed: onGenerateCode,
               icon: Icon(
                 Icons.password_rounded,
@@ -356,7 +526,15 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'History',
+              tooltip: AppStrings.myMedicines,
+              onPressed: onManageMeds,
+              icon: Icon(
+                Icons.medication_outlined,
+                color: Colors.white.withValues(alpha: 0.92),
+              ),
+            ),
+            IconButton(
+              tooltip: AppStrings.history,
               onPressed: onHistory,
               icon: Icon(
                 Icons.history_rounded,
@@ -364,7 +542,7 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Alerts',
+              tooltip: AppStrings.alerts,
               onPressed: onNotifications,
               icon: Icon(
                 Icons.notifications_none_rounded,
@@ -372,7 +550,7 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Settings',
+              tooltip: AppStrings.settings,
               onPressed: onSettings,
               icon: Icon(
                 Icons.settings_outlined,
@@ -445,20 +623,24 @@ class _MedicineCardState extends State<_MedicineCard> {
                                       en: item.nameEn,
                                       ur: item.nameUr,
                                     ),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium?.copyWith(
-                                      fontFamily: 'KhayalRoboto',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 17,
-                                      color: const Color(0xFF1C1C1C),
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontFamily: 'KhayalRoboto',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 17,
+                                          color: const Color(0xFF1C1C1C),
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 8),
-                            _StatusBadge(status: item.status),
+                            _StatusBadge(
+                              status: item.status,
+                              scheduleRaw: item.scheduleRaw,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -472,14 +654,13 @@ class _MedicineCardState extends State<_MedicineCard> {
                             const SizedBox(width: 6),
                             Text(
                               item.time,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(
-                                fontFamily: 'KhayalRoboto',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: const Color(0xFF5C5C5C),
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontFamily: 'KhayalRoboto',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: const Color(0xFF5C5C5C),
+                                  ),
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -487,17 +668,15 @@ class _MedicineCardState extends State<_MedicineCard> {
                                 en: item.doseEn,
                                 ur: item.doseUr,
                               ),
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(
-                                fontFamily:
-                                    AppLanguageState.isUrdu
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontFamily: AppLanguageState.isUrdu
                                         ? 'NotoNastaliqUrdu'
                                         : 'KhayalRoboto',
-                                fontSize: 15,
-                                height: 1.3,
-                                color: const Color(0xFF5C5C5C),
-                              ),
+                                    fontSize: 15,
+                                    height: 1.3,
+                                    color: const Color(0xFF5C5C5C),
+                                  ),
                             ),
                           ],
                         ),
@@ -530,6 +709,10 @@ class _StatusIconCircle extends StatelessWidget {
         _PatientHomeScreenState._upcomingIcon,
         Icons.schedule_rounded,
       ),
+      _MedStatus.dueSoon => (
+        _PatientHomeScreenState._dueSoonIcon,
+        Icons.notifications_active_rounded,
+      ),
       _MedStatus.missed => (
         _PatientHomeScreenState._missedIcon,
         Icons.close_rounded,
@@ -546,25 +729,33 @@ class _StatusIconCircle extends StatelessWidget {
 }
 
 class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
+  const _StatusBadge({required this.status, this.scheduleRaw});
 
   final _MedStatus status;
+  final String? scheduleRaw;
 
   @override
   Widget build(BuildContext context) {
     final (String label, Color bg, Color fg) = switch (status) {
       _MedStatus.taken => (
-        'Taken',
+        AppStrings.taken,
         const Color(0xFFE8F5E9),
         const Color(0xFF1B5E20),
       ),
       _MedStatus.upcoming => (
-        'Upcoming',
+        AppStrings.upcoming,
         const Color(0xFFFFF3E0),
         const Color(0xFFE65100),
       ),
+      _MedStatus.dueSoon => (
+        MedicationDoseStatusLogic.isBeforeScheduledDose(scheduleRaw)
+            ? AppStrings.comingSoon
+            : AppStrings.dueNow,
+        const Color(0xFFFFEBEE),
+        const Color(0xFFC62828),
+      ),
       _MedStatus.missed => (
-        'Missed',
+        AppStrings.missed,
         const Color(0xFFFFEBEE),
         const Color(0xFFC62828),
       ),
@@ -579,7 +770,9 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontFamily: 'KhayalRoboto',
+          fontFamily: AppLanguageState.isUrdu
+              ? 'NotoNastaliqUrdu'
+              : 'KhayalRoboto',
           color: fg,
           fontWeight: FontWeight.w700,
           fontSize: 11,
@@ -641,7 +834,7 @@ class _FloatingSummaryBarState extends State<_FloatingSummaryBar> {
             Expanded(
               child: _SummarySegment(
                 value: widget.taken,
-                label: 'Taken',
+                label: AppStrings.taken,
                 valueColor: _PatientHomeScreenState._takenIcon,
                 pressed: _pressed == 0,
                 onTapDown: () => setState(() => _pressed = 0),
@@ -653,7 +846,7 @@ class _FloatingSummaryBarState extends State<_FloatingSummaryBar> {
             Expanded(
               child: _SummarySegment(
                 value: widget.missed,
-                label: 'Missed',
+                label: AppStrings.missed,
                 valueColor: _PatientHomeScreenState._missedIcon,
                 pressed: _pressed == 1,
                 onTapDown: () => setState(() => _pressed = 1),
@@ -665,7 +858,7 @@ class _FloatingSummaryBarState extends State<_FloatingSummaryBar> {
             Expanded(
               child: _SummarySegment(
                 value: widget.upcoming,
-                label: 'Upcoming',
+                label: AppStrings.upcoming,
                 valueColor: _PatientHomeScreenState._upcomingIcon,
                 pressed: _pressed == 2,
                 onTapDown: () => setState(() => _pressed = 2),

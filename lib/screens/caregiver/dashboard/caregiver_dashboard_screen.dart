@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
+import '../../../core/reminders/medication_reminder_watcher.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
@@ -18,13 +19,18 @@ class CaregiverDashboardScreen extends StatefulWidget {
 }
 
 class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, MedicationReminderWatcherMixin {
   late final AnimationController _entrance;
 
   List<MedicationRecord> _medications = const [];
   String _patientName = 'Loading...';
   bool _loading = true;
   String? _error;
+  int _todayTaken = 0;
+  int _todayMissed = 0;
+  int _todayUpcoming = 0;
+  List<WeeklyAdherenceDay> _weeklyDays = const [];
+  int _overallPercent = 0;
 
   @override
   void initState() {
@@ -50,6 +56,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
         _error = 'Missing caregiver session.';
         _patientName = 'No Patient';
       });
+      syncMedicationReminders(const []);
       return;
     }
 
@@ -64,20 +71,28 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
           _error = 'No linked patient found.';
           _patientName = 'No Patient';
         });
+        syncMedicationReminders(const []);
         return;
       }
       AppSession.selectedPatientId = patientId;
 
       final profile = await Backend.repo.getPatientProfile(patientId);
       final meds = await Backend.repo.getMedicationsForPatient(patientId);
+      final adherence = await Backend.repo.getPatientAdherenceSummary(patientId);
 
       if (!mounted) return;
       setState(() {
         _patientName = profile?.fullName ?? 'Unknown Patient';
         _medications = meds;
+        _todayTaken = adherence.todayTaken;
+        _todayMissed = adherence.todayMissed;
+        _todayUpcoming = adherence.todayUpcoming;
+        _weeklyDays = adherence.weeklyDays;
+        _overallPercent = adherence.overallPercent;
         _loading = false;
         _error = null;
       });
+      syncMedicationReminders(meds);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -85,11 +100,13 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
         _error = 'Failed to load dashboard: $e';
         _patientName = 'Error';
       });
+      syncMedicationReminders(const []);
     }
   }
 
   @override
   void dispose() {
+    disposeMedicationReminders();
     _entrance.dispose();
     super.dispose();
   }
@@ -120,7 +137,9 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
           elevation: 4,
           onPressed: () {
             HapticFeedback.mediumImpact();
-            Navigator.pushNamed(context, AppRoutes.addMedication);
+            Navigator.pushNamed(context, AppRoutes.addMedication).then((_) {
+              if (mounted) _loadDashboardData();
+            });
           },
           child: const Icon(Icons.add, size: 28),
         ),
@@ -198,14 +217,13 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   children: [
                     Text(
                       'Dashboard',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineSmall?.copyWith(
-                        fontFamily: 'KhayalRoboto',
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 26,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 26,
+                          ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -219,8 +237,8 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   ],
                 ),
               ),
-              Stack(
-                clipBehavior: Clip.none,
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Material(
                     color: Colors.white.withValues(alpha: 0.18),
@@ -229,6 +247,38 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     child: InkWell(
                       onTap: () {
                         HapticFeedback.lightImpact();
+                        Navigator.pushNamed(context, AppRoutes.settings);
+                      },
+                      child: const SizedBox(
+                        width: 46,
+                        height: 46,
+                        child: Icon(
+                          Icons.settings_outlined,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        final meds = _medications;
+                        if (meds.isNotEmpty) {
+                          final m = meds.first;
+                          AppSession.pendingDoseReminder = PendingDoseReminder(
+                            medicationId: m.id,
+                            nameEn: m.nameEn,
+                            nameUr: m.nameUr,
+                            timeDisplay: m.timeLabel,
+                            doseUr: m.doseLabel,
+                            scheduleRaw: m.firstScheduleRaw,
+                          );
+                        }
                         Navigator.pushNamed(
                           context,
                           AppRoutes.notificationOverlay,
@@ -240,29 +290,6 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                         child: Icon(
                           Icons.notifications_none_rounded,
                           color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade600,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: const Text(
-                        '1',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -298,7 +325,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                 Expanded(
                   child: _statusColumn(
                     context,
-                    value: '2',
+                    value: '$_todayTaken',
                     label: 'Taken',
                     icon: Icons.check_rounded,
                     iconColor: CaregiverColors.taken,
@@ -308,7 +335,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                 Expanded(
                   child: _statusColumn(
                     context,
-                    value: '1',
+                    value: '$_todayMissed',
                     label: 'Missed',
                     icon: Icons.close_rounded,
                     iconColor: CaregiverColors.missed,
@@ -318,7 +345,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                 Expanded(
                   child: _statusColumn(
                     context,
-                    value: '1',
+                    value: '$_todayUpcoming',
                     label: 'Upcoming',
                     icon: Icons.schedule_rounded,
                     iconColor: CaregiverColors.upcoming,
@@ -383,8 +410,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
   }
 
   Widget _weeklyAdherenceCard(BuildContext context) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final heights = [0.55, 0.72, 0.48, 0.88, 0.62, 0.75, 0.9];
+    final days = _weeklyDays;
     return _shadowCard(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
@@ -423,7 +449,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '89%',
+                        '$_overallPercent%',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontFamily: 'KhayalRoboto',
                           fontWeight: FontWeight.w800,
@@ -440,7 +466,8 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
               height: 120,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(7, (i) {
+                children: List.generate(days.length, (i) {
+                  final rate = days[i].rate;
                   return Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -448,7 +475,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            height: 4 + 86 * heights[i],
+                            height: 4 + 86 * rate,
                             decoration: BoxDecoration(
                               color: CaregiverColors.chartBar,
                               borderRadius: const BorderRadius.vertical(
@@ -458,14 +485,13 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            days[i],
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall?.copyWith(
-                              fontFamily: 'KhayalRoboto',
-                              color: CaregiverColors.textMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            days[i].label,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  color: CaregiverColors.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
@@ -519,7 +545,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '89%',
+                  '$_overallPercent%',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     fontFamily: 'KhayalRoboto',
                     fontWeight: FontWeight.w800,
@@ -602,16 +628,29 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     ur: med.nameUr,
                     dose: med.doseLabel,
                     times: med.timeLabel,
-                    onTap:
-                        () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.editMedication,
-                          arguments: med.id,
-                        ),
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.editMedication,
+                      arguments: med.id,
+                    ),
                   ),
                 );
               }),
             const SizedBox(height: 2),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pushNamed(context, AppRoutes.caregiverReminders);
+                },
+                icon: const Icon(Icons.notifications_active_outlined, size: 20),
+                label: const Text('Reminders & alerts'),
+                style: TextButton.styleFrom(
+                  foregroundColor: CaregiverColors.header,
+                ),
+              ),
+            ),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
@@ -661,10 +700,9 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     Text(
                       AppLanguageState.pick(en: en, ur: ur),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontFamily:
-                            AppLanguageState.isUrdu
-                                ? 'NotoNastaliqUrdu'
-                                : 'KhayalRoboto',
+                        fontFamily: AppLanguageState.isUrdu
+                            ? 'NotoNastaliqUrdu'
+                            : 'KhayalRoboto',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                         color: CaregiverColors.textPrimary,
@@ -725,10 +763,9 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
 class _DottedLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = CaregiverColors.fieldBorder.withValues(alpha: 0.6)
-          ..strokeWidth = 1;
+    final paint = Paint()
+      ..color = CaregiverColors.fieldBorder.withValues(alpha: 0.6)
+      ..strokeWidth = 1;
     const dash = 4.0;
     const gap = 4.0;
     double x = 0;

@@ -1,37 +1,155 @@
 import 'package:flutter/material.dart';
 
-import '../common/widgets/screen_helpers.dart';
+import '../../core/backend/app_session.dart';
+import '../../core/backend/backend.dart';
+import '../../core/i18n/app_language.dart';
+import '../../core/i18n/app_strings.dart';
+import '../../core/navigation/app_routes.dart';
+import '../../core/reminders/reminder_preferences.dart';
 
-class SettingsScreen extends StatelessWidget {
+/// Simple settings — options depend on logged-in role.
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _urdu = AppLanguageState.isUrdu;
+
+  @override
   Widget build(BuildContext context) {
-    return ScreenTemplate(
-      title: 'SCR-016 · Settings',
-      subtitle: 'Preferences and app options',
-      child: Column(
+    final role = AppSession.currentRole;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(AppStrings.settings)),
+      body: ListView(
         children: [
+          if (role == AppRole.doctor) ...[
+            const _SectionHeader('Patients'),
+            ListTile(
+              leading: const Icon(Icons.person_add_outlined),
+              title: const Text('Add patient'),
+              subtitle: const Text(
+                'Patient shares a 6-digit code from their home screen (key icon)',
+              ),
+              onTap: () async {
+                await Navigator.pushNamed(
+                  context,
+                  AppRoutes.doctorPatientSetup,
+                );
+                if (mounted) setState(() {});
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('My patients'),
+              subtitle: const Text('View all linked patients'),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.doctorPatientList);
+              },
+            ),
+            const Divider(),
+          ],
+          if (role == AppRole.patient) ...[
+            _SectionHeader(AppStrings.medicinesSection),
+            ListTile(
+              leading: const Icon(Icons.medication_outlined),
+              title: Text(AppStrings.myMedicines),
+              subtitle: Text(AppStrings.myMedicinesManage),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.medicationManagement);
+              },
+            ),
+            const Divider(),
+          ],
+          if (role == AppRole.caregiver) ...[
+            const _SectionHeader('Patient'),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Link patient'),
+              subtitle: const Text('Connect using patient phone and link code'),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.patientProfileSetup);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: const Text('Reminders & alerts'),
+              subtitle: const Text(
+                'In-app reminders, test alert, today’s dose times',
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.caregiverReminders);
+              },
+            ),
+            const Divider(),
+          ],
+          _SectionHeader(AppStrings.appSection),
           SwitchListTile(
-            value: true,
-            onChanged: (_) {},
-            title: const Text('Urdu Language'),
+            value: ReminderPreferences.inAppRemindersEnabled,
+            onChanged: (v) {
+              setState(() => ReminderPreferences.inAppRemindersEnabled = v);
+            },
+            title: Text(AppStrings.inAppReminders),
+            subtitle: Text(AppStrings.inAppRemindersSub),
           ),
           SwitchListTile(
-            value: true,
-            onChanged: (_) {},
-            title: const Text('Vibration'),
+            value: _urdu,
+            onChanged: (v) async {
+              setState(() {
+                _urdu = v;
+              });
+              await AppLanguageState.setLanguage(
+                v ? AppLanguage.urdu : AppLanguage.english,
+              );
+              final uid = AppSession.currentUserId;
+              if (uid != null) {
+                await Backend.repo.updateProfileLanguage(
+                  userId: uid,
+                  languageCode: AppLanguageState.languageCode,
+                );
+              }
+            },
+            title: Text(AppStrings.urduLanguage),
           ),
           const ListTile(
-            title: Text('Reminder Sound'),
-            subtitle: Text('Sound 1 (sample)'),
-            trailing: Icon(Icons.chevron_right),
+            leading: Icon(Icons.vibration),
+            title: Text('Vibration'),
+            subtitle: Text('On'),
           ),
           const ListTile(
-            title: Text('Privacy Policy'),
-            trailing: Icon(Icons.open_in_new),
+            leading: Icon(Icons.volume_up_outlined),
+            title: Text('Reminder sound'),
+            subtitle: Text('Default'),
+          ),
+          const ListTile(
+            leading: Icon(Icons.privacy_tip_outlined),
+            title: Text('Privacy policy'),
+            trailing: Icon(Icons.open_in_new, size: 20),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: Colors.black54,
+        ),
       ),
     );
   }

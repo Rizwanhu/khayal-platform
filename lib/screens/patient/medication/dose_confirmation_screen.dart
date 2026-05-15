@@ -43,6 +43,7 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
   @override
   void dispose() {
     _entranceController.dispose();
+    AppSession.clearPendingDoseReminder();
     super.dispose();
   }
 
@@ -51,22 +52,51 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
         AppSession.selectedPatientId ??
         AppSession.currentUserId ??
         Supabase.instance.client.auth.currentUser?.id;
+    final pending = AppSession.pendingDoseReminder;
     if (patientId != null && patientId.isNotEmpty) {
       try {
-        final meds = await Backend.repo.getMedicationsForPatient(patientId);
-        if (meds.isNotEmpty) {
+        final medId = pending?.medicationId;
+        final scheduleRaw = pending?.scheduleRaw;
+        if (medId != null && medId.isNotEmpty) {
           await Backend.repo.confirmDose(
             patientId: patientId,
-            medicationId: meds.first.id,
+            medicationId: medId,
             status: 'taken',
+            scheduleRaw: scheduleRaw,
           );
+        } else {
+          final meds = await Backend.repo.getMedicationsForPatient(patientId);
+          if (meds.isNotEmpty) {
+            await Backend.repo.confirmDose(
+              patientId: patientId,
+              medicationId: meds.first.id,
+              status: 'taken',
+              scheduleRaw: meds.first.firstScheduleRaw,
+            );
+          }
         }
       } catch (_) {
         // Keep flow non-blocking for UI.
       }
     }
+
+    TodayDoseSummary summary = const TodayDoseSummary(
+      taken: 0,
+      total: 0,
+      takenMedicationIds: {},
+    );
+    if (patientId != null && patientId.isNotEmpty) {
+      try {
+        summary = await Backend.repo.getTodayDoseSummary(patientId);
+      } catch (_) {}
+    }
+
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, AppRoutes.doseTakenSuccess);
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.doseTakenSuccess,
+      arguments: summary,
+    );
   }
 
   void _onSnooze() {
@@ -117,10 +147,13 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
                 );
               },
               child: DoseReminderPanel(
-                nameEn: 'Paracetamol',
-                nameUr: 'پیراسیٹامول',
-                time: '08:00',
-                doseUr: '1 گولی',
+                nameEn: AppSession.pendingDoseReminder?.nameEn ??
+                    'Paracetamol',
+                nameUr: AppSession.pendingDoseReminder?.nameUr ??
+                    'پیراسیٹامول',
+                time: AppSession.pendingDoseReminder?.timeDisplay ?? '08:00',
+                doseUr:
+                    AppSession.pendingDoseReminder?.doseUr ?? '1 گولی',
                 onTookIt: _onTookIt,
                 onSnooze: _onSnooze,
               ),

@@ -4,15 +4,16 @@ import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/navigation/app_routes.dart';
 
-class PatientProfileSetupScreen extends StatefulWidget {
-  const PatientProfileSetupScreen({super.key});
+/// Doctor enters patient phone + link code from the patient home key icon.
+class DoctorPatientSetupScreen extends StatefulWidget {
+  const DoctorPatientSetupScreen({super.key});
 
   @override
-  State<PatientProfileSetupScreen> createState() =>
-      _PatientProfileSetupScreenState();
+  State<DoctorPatientSetupScreen> createState() =>
+      _DoctorPatientSetupScreenState();
 }
 
-class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
+class _DoctorPatientSetupScreenState extends State<DoctorPatientSetupScreen> {
   final _patientPhoneController = TextEditingController();
   final _linkCodeController = TextEditingController();
   bool _saving = false;
@@ -25,18 +26,17 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
     });
   }
 
-  /// After hot reload, skip re-linking when this caregiver already has a patient.
   Future<void> _continueIfPatientAlreadyLinked() async {
-    final caregiverId = AppSession.currentUserId;
-    if (caregiverId == null || caregiverId.isEmpty) return;
-    final patientId = await Backend.repo.getFirstPatientForCaregiver(caregiverId);
+    final doctorId = AppSession.currentUserId;
+    if (doctorId == null || doctorId.isEmpty) return;
+    final patientId = await Backend.repo.getFirstPatientForDoctor(doctorId);
     if (patientId == null || !mounted) return;
     AppSession.setRole(
-      role: AppRole.caregiver,
-      userId: caregiverId,
+      role: AppRole.doctor,
+      userId: doctorId,
       patientId: patientId,
     );
-    Navigator.pushReplacementNamed(context, AppRoutes.caregiverDashboard);
+    Navigator.pushReplacementNamed(context, AppRoutes.doctorDashboard);
   }
 
   @override
@@ -47,10 +47,10 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
   }
 
   Future<void> _verifyCodeAndLinkPatient() async {
-    final caregiverId = AppSession.currentUserId;
+    final doctorId = AppSession.currentUserId;
     final patientPhone = _patientPhoneController.text.trim();
     final code = _linkCodeController.text.trim();
-    if (caregiverId == null || caregiverId.isEmpty) {
+    if (doctorId == null || doctorId.isEmpty) {
       _toast('Session missing. Login again.');
       return;
     }
@@ -60,10 +60,11 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
     }
     setState(() => _saving = true);
     try {
-      final normalizedPhone =
-          patientPhone.startsWith('+') ? patientPhone : '+$patientPhone';
-      final linked = await Backend.repo.linkCaregiverToPatientViaCode(
-        caregiverId: caregiverId,
+      final normalizedPhone = patientPhone.startsWith('+')
+          ? patientPhone
+          : '+$patientPhone';
+      final linked = await Backend.repo.linkDoctorToPatientViaCode(
+        doctorId: doctorId,
         patientPhone: normalizedPhone,
         code: code,
       );
@@ -72,17 +73,15 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
         return;
       }
       if (!mounted) return;
-      final patientId = await Backend.repo.getFirstPatientForCaregiver(
-        caregiverId,
-      );
+      final patientId = await Backend.repo.getFirstPatientForDoctor(doctorId);
       AppSession.setRole(
-        role: AppRole.caregiver,
-        userId: caregiverId,
+        role: AppRole.doctor,
+        userId: doctorId,
         patientId: patientId,
       );
       Navigator.pushNamedAndRemoveUntil(
         context,
-        AppRoutes.caregiverDashboard,
+        AppRoutes.doctorDashboard,
         (route) => false,
       );
     } catch (e) {
@@ -102,15 +101,21 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient Profile Setup')),
+      appBar: AppBar(title: const Text('Link patient')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              'Ask the patient to tap the key icon on their home screen and share the 6-digit code.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _patientPhoneController,
               decoration: const InputDecoration(
-                labelText: 'Patient Phone (e.g. +923001234567)',
+                labelText: 'Patient phone (e.g. +923001234567)',
               ),
             ),
             const SizedBox(height: 10),
@@ -118,7 +123,7 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
               controller: _linkCodeController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: '6-digit link code from patient',
+                labelText: '6-digit link code',
               ),
             ),
             const SizedBox(height: 20),
@@ -126,7 +131,7 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _saving ? null : _verifyCodeAndLinkPatient,
-                child: Text(_saving ? 'Linking...' : 'Link patient & continue'),
+                child: Text(_saving ? 'Linking…' : 'Verify & link patient'),
               ),
             ),
           ],

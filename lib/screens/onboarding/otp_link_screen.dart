@@ -1,13 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_env.dart';
 import '../../core/backend/app_session.dart';
 import '../../core/backend/backend.dart';
+import '../../core/i18n/app_language.dart';
+import '../../core/i18n/app_strings.dart';
 import '../../core/navigation/app_routes.dart';
 
-/// Phone OTP login/registration for selected role.
+/// Phone number sign-in (no SMS OTP). Linking doctor/caregiver to patient still
+/// uses the 6-digit code from the patient home screen.
 class OtpLinkScreen extends StatefulWidget {
   const OtpLinkScreen({super.key});
 
@@ -16,13 +19,12 @@ class OtpLinkScreen extends StatefulWidget {
 }
 
 class _OtpLinkScreenState extends State<OtpLinkScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   static const Color _canvas = Color(0xFFFAF9F6);
   static const Color _title = Color(0xFF222222);
   static const Color _subtitle = Color(0xFF757575);
   static const Color _cellFill = Color(0xFFF2EFE9);
   static const Color _cellBorderIdle = Color(0xFFE0DCD4);
-  static const Color _cellBorderFocus = Color(0xFFADC2B1);
   static const Color _ctaMuted = Color(0xFFADC2B1);
   static const Color _ctaReady = Color(0xFF6B8E7B);
 
@@ -30,27 +32,15 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
 
-  late final AnimationController _pulseController;
-  late final Animation<double> _pulseAnimation;
-
-  final List<TextEditingController> _digitControllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _digitFocus = List.generate(6, (_) => FocusNode());
   final TextEditingController _phoneController = TextEditingController();
 
   double _buttonScale = 1;
-  bool _sendingOtp = false;
-  bool _verifyingOtp = false;
-  bool _otpSent = false;
-
-  bool get _isComplete =>
-      _digitControllers.every((c) => c.text.trim().isNotEmpty);
-
-  String get _otpCode => _digitControllers.map((e) => e.text).join();
+  bool _signingIn = false;
 
   AppRole get _role => AppSession.currentRole ?? AppRole.patient;
+
+  bool get _phoneValid =>
+      BackendRepository.normalizePhone(_phoneController.text) != null;
 
   @override
   void initState() {
@@ -62,146 +52,38 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.07),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.07), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entranceController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     _entranceController.forward();
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-    _pulseAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    for (final n in _digitFocus) {
-      n.addListener(_onFocusChanged);
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future<void>.delayed(const Duration(milliseconds: 380), () {
-        if (mounted) _digitFocus.first.requestFocus();
-      });
-    });
-  }
-
-  void _onFocusChanged() {
-    final hasFocus = _digitFocus.any((n) => n.hasFocus);
-    if (hasFocus && !_pulseController.isAnimating) {
-      _pulseController.repeat(reverse: true);
-    } else if (!hasFocus) {
-      _pulseController.stop();
-      _pulseController.reset();
-    }
-    setState(() {});
   }
 
   @override
   void dispose() {
-    for (final n in _digitFocus) {
-      n.removeListener(_onFocusChanged);
-      n.dispose();
-    }
-    for (final c in _digitControllers) {
-      c.dispose();
-    }
     _phoneController.dispose();
     _entranceController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
-  void _onDigitChanged(int index, String value) {
-    final digits = value.replaceAll(RegExp(r'\D'), '');
-    if (digits.length > 1) {
-      _pasteDigits(digits, index);
-      return;
-    }
-    if (value.isNotEmpty && index < 5) {
-      _digitFocus[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _digitFocus[index - 1].requestFocus();
-    }
-    setState(() {});
-  }
-
-  void _pasteDigits(String digits, int startIndex) {
-    final chars = digits.split('');
-    var i = startIndex;
-    for (final ch in chars) {
-      if (i > 5) break;
-      if (RegExp(r'[0-9]').hasMatch(ch)) {
-        _digitControllers[i].text = ch;
-        i++;
-      }
-    }
-    if (i <= 5) {
-      _digitFocus[i].requestFocus();
-    } else {
-      _digitFocus[5].requestFocus();
-    }
-    setState(() {});
-  }
-
-  String _normalizedPhone() {
-    final raw = _phoneController.text.trim().replaceAll(' ', '');
-    return raw.startsWith('+') ? raw : '+$raw';
-  }
-
-  Future<void> _sendOtp() async {
-    if (AppEnv.devOtpBypass) {
-      if (!mounted) return;
-      setState(() => _otpSent = true);
-      _snack(
-        'Dev bypass: SMS disabled. Enter any 6 digits, then Verify & Continue.',
-      );
+  Future<void> _continueWithPhone() async {
+    if (!_phoneValid && !AppEnv.devOtpBypass) {
+      _snack('Enter a valid phone number with country code (e.g. +923001234567).');
       return;
     }
 
-    final phone = _normalizedPhone();
-    if (phone.length < 8) {
-      _snack('Enter valid phone number with country code.');
-      return;
-    }
-    setState(() => _sendingOtp = true);
+    setState(() => _signingIn = true);
     try {
-      await Supabase.instance.client.auth.signInWithOtp(phone: phone);
-      if (!mounted) return;
-      setState(() => _otpSent = true);
-      _snack('OTP sent successfully.');
-      _digitFocus.first.requestFocus();
-    } on AuthException catch (e) {
-      _snack(e.message);
-    } catch (e) {
-      _snack('Failed to send OTP: $e');
-    } finally {
-      if (mounted) setState(() => _sendingOtp = false);
-    }
-  }
-
-  Future<void> _verifyOtpAndContinue() async {
-    if (!_otpSent) {
-      await _sendOtp();
-      return;
-    }
-    if (!_isComplete) {
-      _snack('Enter 6-digit OTP code.');
-      return;
-    }
-
-    setState(() => _verifyingOtp = true);
-    try {
-      User? user;
-
+      final User user;
       if (AppEnv.devOtpBypass) {
         final creds = AppEnv.bypassEmailPasswordForRole(_role);
         if (creds == null) {
           _snack(
-            'DEV_OTP_BYPASS is on but .env is missing DEV_BYPASS_*_EMAIL / PASSWORD for this role.',
+            'DEV_OTP_BYPASS is on but .env needs DEV_BYPASS_EMAIL / DEV_BYPASS_PASSWORD '
+            '(or per-role DEV_BYPASS_*).',
           );
           return;
         }
@@ -209,70 +91,144 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
           email: creds.$1,
           password: creds.$2,
         );
-        user = res.user ?? Supabase.instance.client.auth.currentUser;
+        final resolved = res.user ?? Supabase.instance.client.auth.currentUser;
+        if (resolved == null) {
+          _snack('Dev sign-in failed. Check bypass credentials in .env.');
+          return;
+        }
+        user = resolved;
       } else {
-        final response = await Supabase.instance.client.auth.verifyOTP(
-          phone: _normalizedPhone(),
-          token: _otpCode,
-          type: OtpType.sms,
-        );
-        user = response.user ?? Supabase.instance.client.auth.currentUser;
+        final phone = BackendRepository.normalizePhone(_phoneController.text)!;
+        user = await Backend.repo.signInOrSignUpWithPhone(phone: phone);
       }
 
-      final resolvedUser = user;
-      if (resolvedUser == null) {
-        _snack('OTP verification failed. Try again.');
-        return;
-      }
+      final phoneForProfile = AppEnv.devOtpBypass
+          ? (BackendRepository.normalizePhone(_phoneController.text) ??
+                user.phone)
+          : BackendRepository.normalizePhone(_phoneController.text);
 
-      final phoneForProfile = () {
-        final p = _normalizedPhone();
-        return p.length >= 8 ? p : null;
-      }();
-
-      await Backend.repo.upsertProfile(
-        userId: resolvedUser.id,
-        role: _role.name,
-        fullName: _role == AppRole.caregiver ? 'New Caregiver' : 'New User',
-        phone: phoneForProfile,
-      );
-
-      AppSession.setRole(
-        role: _role,
-        userId: resolvedUser.id,
-        patientId: _role == AppRole.patient ? resolvedUser.id : null,
-      );
-
-      if (!mounted) return;
-      switch (_role) {
-        case AppRole.patient:
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.patientHome,
-            (route) => false,
-          );
-          break;
-        case AppRole.caregiver:
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.caregiverRegistration,
-            (route) => false,
-          );
-          break;
-        case AppRole.doctor:
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.doctorDashboard,
-            (route) => false,
-          );
-          break;
-      }
+      await _finishSignIn(user, phoneForProfile);
     } on AuthException catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('OTP verify failed: $e');
+      _snack('Sign-in failed: $e');
     } finally {
-      if (mounted) setState(() => _verifyingOtp = false);
+      if (mounted) setState(() => _signingIn = false);
+    }
+  }
+
+  Future<void> _finishSignIn(User resolvedUser, String? phoneForProfile) async {
+    final existingProfile =
+        await Backend.repo.getPatientProfile(resolvedUser.id);
+    final defaultName =
+        _role == AppRole.caregiver ? 'New Caregiver' : 'New User';
+    final existingName = existingProfile?.fullName.trim() ?? '';
+    final fullNameForProfile =
+        existingName.isNotEmpty &&
+            existingName != 'New Caregiver' &&
+            existingName != 'New User'
+        ? existingName
+        : defaultName;
+
+    final storedLang = existingProfile?.languageCode?.trim();
+    if (storedLang != null && storedLang.isNotEmpty) {
+      await AppLanguageState.setLanguage(
+        storedLang == 'ur' || storedLang.startsWith('ur')
+            ? AppLanguage.urdu
+            : AppLanguage.english,
+      );
+    }
+
+    await Backend.repo.upsertProfile(
+      userId: resolvedUser.id,
+      role: _role.name,
+      fullName: fullNameForProfile,
+      phone: phoneForProfile,
+      languageCode: AppLanguageState.languageCode,
+    );
+
+    AppSession.setRole(
+      role: _role,
+      userId: resolvedUser.id,
+      patientId: _role == AppRole.patient ? resolvedUser.id : null,
+    );
+
+    if (!mounted) return;
+    switch (_role) {
+      case AppRole.patient:
+        final patientId = resolvedUser.id;
+        final patientProfileDone =
+            await Backend.repo.patientProfileIsComplete(patientId);
+        if (!mounted) return;
+        if (!patientProfileDone) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.profileRegistration,
+            (route) => false,
+          );
+          break;
+        }
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.patientHome,
+          (route) => false,
+        );
+        break;
+      case AppRole.caregiver:
+        final caregiverId = resolvedUser.id;
+        final profileDone =
+            await Backend.repo.caregiverProfileIsComplete(caregiverId);
+        if (!mounted) return;
+        final linkedPatientId = profileDone
+            ? await Backend.repo.getFirstPatientForCaregiver(caregiverId)
+            : null;
+        if (!mounted) return;
+        AppSession.setRole(
+          role: AppRole.caregiver,
+          userId: caregiverId,
+          patientId: linkedPatientId,
+        );
+        final caregiverRoute = !profileDone
+            ? AppRoutes.caregiverRegistration
+            : (linkedPatientId != null
+                  ? AppRoutes.caregiverDashboard
+                  : AppRoutes.patientProfileSetup);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          caregiverRoute,
+          (route) => false,
+        );
+        break;
+      case AppRole.doctor:
+        final doctorId = resolvedUser.id;
+        final doctorProfileDone =
+            await Backend.repo.doctorProfileIsComplete(doctorId);
+        if (!mounted) return;
+        if (!doctorProfileDone) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.profileRegistration,
+            (route) => false,
+          );
+          break;
+        }
+        final linkedPatientId =
+            await Backend.repo.getFirstPatientForDoctor(doctorId);
+        if (!mounted) return;
+        AppSession.setRole(
+          role: AppRole.doctor,
+          userId: doctorId,
+          patientId: linkedPatientId,
+        );
+        final doctorRoute = linkedPatientId != null
+            ? AppRoutes.doctorDashboard
+            : AppRoutes.doctorPatientSetup;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          doctorRoute,
+          (route) => false,
+        );
+        break;
     }
   }
 
@@ -286,6 +242,7 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final canContinue = AppEnv.devOtpBypass || _phoneValid;
 
     return Scaffold(
       backgroundColor: _canvas,
@@ -293,172 +250,136 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: AnimatedBuilder(
-              animation: Listenable.merge([
-                _entranceController,
-                _pulseController,
-              ]),
-              builder: (context, _) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (AppEnv.devOtpBypass) ...[
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade100,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Colors.amber.shade700,
-                                ),
-                              ),
-                              child: Text(
-                                'DEV: OTP bypass on — any 6 digits. Turn off DEV_OTP_BYPASS before release.',
-                                textAlign: TextAlign.center,
-                                style: textTheme.labelMedium?.copyWith(
-                                  fontFamily: 'KhayalRoboto',
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.brown.shade900,
-                                  height: 1.35,
-                                ),
-                              ),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (kDebugMode &&
+                          !AppEnv.devOtpBypass &&
+                          AppEnv.phoneAuthPassword.isEmpty) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.blueGrey.shade300,
                             ),
-                            const SizedBox(height: 16),
-                          ],
-                          Text(
-                            _otpSent ? 'Verify OTP' : 'Sign In with Phone',
+                          ),
+                          child: Text(
+                            'Set PHONE_AUTH_PASSWORD in .env (Supabase Auth → disable email confirmation for sign-up).',
                             textAlign: TextAlign.center,
-                            style: textTheme.headlineSmall?.copyWith(
+                            style: textTheme.labelSmall?.copyWith(
                               fontFamily: 'KhayalRoboto',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 26,
-                              color: _title,
-                              height: 1.2,
+                              color: Colors.blueGrey.shade900,
+                              height: 1.35,
                             ),
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            _otpSent
-                                ? 'Enter the 6-digit code sent to your phone'
-                                : 'Use your phone number to continue',
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (AppEnv.devOtpBypass) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.amber.shade700),
+                          ),
+                          child: Text(
+                            'DEV: bypass on — phone optional; uses DEV_BYPASS_* credentials.',
                             textAlign: TextAlign.center,
-                            style: textTheme.bodyLarge?.copyWith(
+                            style: textTheme.labelMedium?.copyWith(
                               fontFamily: 'KhayalRoboto',
-                              fontWeight: FontWeight.w400,
-                              fontSize: 15,
-                              height: 1.45,
-                              color: _subtitle,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.brown.shade900,
+                              height: 1.35,
                             ),
                           ),
-                          const SizedBox(height: 40),
-                          TextField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              hintText: '+923001234567',
-                              labelText: 'Phone Number',
-                              filled: true,
-                              fillColor: _cellFill,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: _cellBorderIdle,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: _cellBorderIdle,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          OutlinedButton(
-                            onPressed: _sendingOtp ? null : _sendOtp,
-                            child: Text(
-                              _sendingOtp ? 'Sending...' : 'Send OTP',
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              const gap = 10.0;
-                              final rowWidth = constraints.maxWidth;
-                              final cellW = (rowWidth - 5 * gap) / 6;
-                              final w = cellW.clamp(44.0, 56.0);
-                              final totalRow = 6 * w + 5 * gap;
-
-                              return Column(
-                                children: [
-                                  SizedBox(
-                                    width: totalRow,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: List.generate(
-                                        6,
-                                        (i) => _OtpCell(
-                                          width: w,
-                                          digitColor: _title,
-                                          controller: _digitControllers[i],
-                                          focusNode: _digitFocus[i],
-                                          fill: _cellFill,
-                                          borderIdle: _cellBorderIdle,
-                                          borderFocus: _cellBorderFocus,
-                                          pulse: _pulseAnimation.value,
-                                          isFocused: _digitFocus[i].hasFocus,
-                                          onChanged:
-                                              (v) => _onDigitChanged(i, v),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 36),
-                                  SizedBox(
-                                    width: totalRow,
-                                    child: _LinkAccountButton(
-                                      scale: _buttonScale,
-                                      enabled: _isComplete,
-                                      label:
-                                          _verifyingOtp
-                                              ? 'Verifying...'
-                                              : _otpSent
-                                              ? 'Verify & Continue'
-                                              : 'Send OTP',
-                                      mutedColor: _ctaMuted,
-                                      readyColor: _ctaReady,
-                                      onTap: _verifyOtpAndContinue,
-                                      onTapDown:
-                                          () => setState(() {
-                                            _buttonScale = 0.96;
-                                          }),
-                                      onTapEnd:
-                                          () => setState(() {
-                                            _buttonScale = 1;
-                                          }),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      Text(
+                        AppStrings.continueWithPhone,
+                        textAlign: TextAlign.center,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontFamily: AppLanguageState.isUrdu
+                              ? 'NotoNastaliqUrdu'
+                              : 'KhayalRoboto',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 26,
+                          color: _title,
+                          height: 1.2,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      Text(
+                        AppStrings.phoneSignInBlurb,
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyLarge?.copyWith(
+                          fontFamily: AppLanguageState.isUrdu
+                              ? 'NotoNastaliqUrdu'
+                              : 'KhayalRoboto',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 15,
+                          height: 1.45,
+                          color: _subtitle,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      TextField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: '+923001234567',
+                          labelText: AppStrings.phoneNumber,
+                          filled: true,
+                          fillColor: _cellFill,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: _cellBorderIdle,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: _cellBorderIdle,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 36),
+                      _ContinueButton(
+                        scale: _buttonScale,
+                        enabled: canContinue && !_signingIn,
+                        label: _signingIn
+                            ? AppStrings.pleaseWait
+                            : AppStrings.continueBtn,
+                        mutedColor: _ctaMuted,
+                        readyColor: _ctaReady,
+                        onTap: _continueWithPhone,
+                        onTapDown: () => setState(() => _buttonScale = 0.96),
+                        onTapEnd: () => setState(() => _buttonScale = 1),
+                      ),
+                    ],
                   ),
-                );
-              },
+                ),
+              ),
             ),
           ),
         ),
@@ -467,91 +388,8 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
   }
 }
 
-class _OtpCell extends StatelessWidget {
-  const _OtpCell({
-    required this.width,
-    required this.digitColor,
-    required this.controller,
-    required this.focusNode,
-    required this.fill,
-    required this.borderIdle,
-    required this.borderFocus,
-    required this.pulse,
-    required this.isFocused,
-    required this.onChanged,
-  });
-
-  final double width;
-  final Color digitColor;
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final Color fill;
-  final Color borderIdle;
-  final Color borderFocus;
-  final double pulse;
-  final bool isFocused;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final borderColor =
-        Color.lerp(
-          borderIdle,
-          borderFocus,
-          isFocused ? pulse * 0.35 + 0.65 : 0,
-        )!;
-    final borderWidth = isFocused ? 1.8 + pulse * 0.4 : 1.0;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      width: width,
-      height: width * 1.12,
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: borderWidth),
-        boxShadow:
-            isFocused
-                ? [
-                  BoxShadow(
-                    color: borderFocus.withValues(alpha: 0.22 * pulse),
-                    blurRadius: 8 + 6 * pulse,
-                    spreadRadius: 0.5 * pulse,
-                  ),
-                ]
-                : null,
-      ),
-      child: Center(
-        child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          maxLength: 1,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontFamily: 'KhayalRoboto',
-            fontWeight: FontWeight.w600,
-            fontSize: 22,
-            color: digitColor,
-            height: 1,
-          ),
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(
-            border: InputBorder.none,
-            counterText: '',
-            isDense: true,
-            contentPadding: EdgeInsets.zero,
-          ),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-}
-
-class _LinkAccountButton extends StatelessWidget {
-  const _LinkAccountButton({
+class _ContinueButton extends StatelessWidget {
+  const _ContinueButton({
     required this.scale,
     required this.enabled,
     required this.label,
@@ -574,7 +412,6 @@ class _LinkAccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = Color.lerp(mutedColor, readyColor, enabled ? 1.0 : 0.0)!;
-    final canTap = enabled;
 
     return AnimatedScale(
       scale: scale,
@@ -584,13 +421,14 @@ class _LinkAccountButton extends StatelessWidget {
         duration: const Duration(milliseconds: 320),
         curve: Curves.easeOutCubic,
         height: 54,
+        width: double.infinity,
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(26),
           boxShadow: [
             BoxShadow(
-              color: bg.withValues(alpha: canTap ? 0.28 : 0.12),
-              blurRadius: canTap ? 18 : 8,
+              color: bg.withValues(alpha: enabled ? 0.28 : 0.12),
+              blurRadius: enabled ? 18 : 8,
               offset: const Offset(0, 6),
             ),
           ],
@@ -599,10 +437,10 @@ class _LinkAccountButton extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(26),
-            onTap: canTap ? onTap : null,
-            onTapDown: canTap ? (_) => onTapDown() : null,
-            onTapCancel: canTap ? onTapEnd : null,
-            onTapUp: canTap ? (_) => onTapEnd() : null,
+            onTap: enabled ? onTap : null,
+            onTapDown: enabled ? (_) => onTapDown() : null,
+            onTapCancel: enabled ? onTapEnd : null,
+            onTapUp: enabled ? (_) => onTapEnd() : null,
             child: Center(
               child: Text(
                 label,

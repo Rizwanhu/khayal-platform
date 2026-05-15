@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
-
+import '../../../core/backend/backend_repository.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../../common/widgets/screen_helpers.dart';
 
@@ -39,13 +39,11 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
     }
     try {
       final rows = await Backend.repo.getDoctorPatients(doctorId);
-      if (!mounted) return;
       setState(() {
         _patients = rows;
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
       setState(() {
         _loading = false;
         _error = 'Failed to load patients: $e';
@@ -56,37 +54,65 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
   @override
   Widget build(BuildContext context) {
     return ScreenTemplate(
-      title: 'Doctor Patient List',
-      subtitle: 'Assigned patients from Supabase',
-      child:
-          _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
-              ? Text(_error!)
-              : Column(
-                children:
-                    _patients
-                        .map(
-                          (p) => Card(
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.person),
-                              ),
-                              title: Text(p.patientName),
-                              subtitle: Text(p.subtitle),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                AppSession.selectedPatientId = p.patientId;
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.doctorPatientHistory,
-                                );
-                              },
-                            ),
-                          ),
-                        )
-                        .toList(),
-              ),
+      title: 'My patients',
+      subtitle: 'Patients linked to your account',
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Text(_error!)
+          : _patients.isEmpty
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('No patients linked yet.'),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () async {
+                    await Navigator.pushNamed(
+                      context,
+                      AppRoutes.doctorPatientSetup,
+                    );
+                    if (mounted) _load();
+                  },
+                  icon: const Icon(Icons.link),
+                  label: const Text('Add patient with code'),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: () async {
+                    await Navigator.pushNamed(
+                      context,
+                      AppRoutes.doctorPatientSetup,
+                    );
+                    if (mounted) _load();
+                  },
+                  icon: const Icon(Icons.person_add_outlined),
+                  label: const Text('Add another patient'),
+                ),
+                const SizedBox(height: 12),
+                ..._patients.map(
+                  (p) => Card(
+                    child: ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.person)),
+                      title: Text(p.patientName),
+                      subtitle: const Text('View dose history'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        AppSession.selectedPatientId = p.patientId;
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.doctorPatientHistory,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

@@ -32,7 +32,7 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
     if (patientId == null || patientId.isEmpty) {
       setState(() {
         _loading = false;
-        _error = 'Missing patient session. Login with phone OTP first.';
+        _error = 'Missing patient session. Sign in with your phone number first.';
       });
       return;
     }
@@ -55,7 +55,7 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return ScreenTemplate(
-      title: 'SCR-011 · Patient History',
+      title: 'History',
       subtitle: 'Live data from Supabase',
       child:
           _loading

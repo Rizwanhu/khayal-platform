@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/i18n/app_language.dart';
+import '../../../core/reminders/medication_voice_service.dart';
 
 /// Shared reminder card: bell, med info, primary + snooze actions.
 class DoseReminderPanel extends StatefulWidget {
@@ -14,6 +16,7 @@ class DoseReminderPanel extends StatefulWidget {
     required this.onTookIt,
     required this.onSnooze,
     this.headline = 'Time to Take Medicine!',
+    this.speakOnAppear = true,
   });
 
   final String nameEn;
@@ -23,6 +26,9 @@ class DoseReminderPanel extends StatefulWidget {
   final VoidCallback onTookIt;
   final VoidCallback onSnooze;
   final String headline;
+
+  /// When true (default), speaks Urdu reminder once after first frame (mobile/desktop).
+  final bool speakOnAppear;
 
   @override
   State<DoseReminderPanel> createState() => _DoseReminderPanelState();
@@ -51,6 +57,12 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.speakOnAppear || kIsWeb) return;
+      MedicationVoiceService.instance.announceUrduDoseReminder(
+        medicineNameUr: widget.nameUr.trim().isEmpty ? null : widget.nameUr,
+      );
+    });
     Future<void>.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
       _runBellWobble();

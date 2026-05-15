@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/backend/app_session.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../widgets/dose_reminder_panel.dart';
 
@@ -59,6 +60,7 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
   void dispose() {
     _scrimController.dispose();
     _cardController.dispose();
+    AppSession.clearPendingDoseReminder();
     super.dispose();
   }
 
@@ -115,10 +117,14 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
                     child: SlideTransition(
                       position: _cardSlide,
                       child: DoseReminderPanel(
-                        nameEn: 'Paracetamol',
-                        nameUr: 'پیراسیٹامول',
-                        time: '08:00',
-                        doseUr: '1 گولی',
+                        nameEn: AppSession.pendingDoseReminder?.nameEn ??
+                            'Paracetamol',
+                        nameUr: AppSession.pendingDoseReminder?.nameUr ??
+                            'پیراسیٹامول',
+                        time: AppSession.pendingDoseReminder?.timeDisplay ??
+                            '08:00',
+                        doseUr: AppSession.pendingDoseReminder?.doseUr ??
+                            '1 گولی',
                         onTookIt: _onTookIt,
                         onSnooze: _onSnooze,
                       ),
