@@ -158,13 +158,15 @@ Future<void> _pickAndDeliver(
 }) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   try {
+    // Implement the actual image_picker logic using the Flutter image_picker package
     final picker = ImagePicker();
-    final x = await picker.pickImage(
+    final XFile? x = await picker.pickImage(
       source: useCamera ? ImageSource.camera : ImageSource.gallery,
       maxWidth: 1600,
       imageQuality: 85,
     );
     if (x == null) return;
+    
     final bytes = await x.readAsBytes();
     if (bytes.isEmpty) return;
     final mime = x.mimeType ?? _mimeFromPath(x.path);

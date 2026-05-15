@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/backend/app_session.dart';
+import '../../../core/backend/backend.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
@@ -17,6 +20,11 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
     with TickerProviderStateMixin {
   late final AnimationController _entrance;
 
+  List<MedicationRecord> _medications = const [];
+  String _patientName = 'Loading...';
+  bool _loading = true;
+  String? _error;
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +35,53 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _entrance.forward();
     });
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    final caregiverId =
+        AppSession.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+    if (caregiverId == null || caregiverId.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Missing caregiver session.';
+        _patientName = 'No Patient';
+      });
+      return;
+    }
+
+    try {
+      final patientId = await Backend.repo.getFirstPatientForCaregiver(caregiverId);
+      if (patientId == null) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = 'No linked patient found.';
+          _patientName = 'No Patient';
+        });
+        return;
+      }
+      AppSession.selectedPatientId = patientId;
+
+      final profile = await Backend.repo.getPatientProfile(patientId);
+      final meds = await Backend.repo.getMedicationsForPatient(patientId);
+
+      if (!mounted) return;
+      setState(() {
+        _patientName = profile?.fullName ?? 'Unknown Patient';
+        _medications = meds;
+        _loading = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Failed to load dashboard: $e';
+        _patientName = 'Error';
+      });
+    }
   }
 
   @override
@@ -146,7 +201,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Patient: Ahmad Khan',
+                      'Patient: $_patientName',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             fontFamily: 'KhayalRoboto',
                             color: Colors.white.withValues(alpha: 0.92),
@@ -507,24 +562,34 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
               ],
             ),
             const SizedBox(height: 12),
-            _medRow(
-              context,
-              en: 'Paracetamol',
-              ur: 'پیراسیٹامول',
-              dose: '1 tablet • 3x daily',
-              times: '08:00, 14:00, 20:00',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.editMedication),
-            ),
-            const SizedBox(height: 10),
-            _medRow(
-              context,
-              en: 'Metformin',
-              ur: 'میٹفارمن',
-              dose: '2 tablets • 2x daily',
-              times: '09:00, 21:00',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.editMedication),
-            ),
-            const SizedBox(height: 12),
+            if (_loading)
+              const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+            else if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red))
+            else if (_medications.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('No medications added yet.', style: TextStyle(color: CaregiverColors.textMuted)),
+              )
+            else
+              ..._medications.take(3).map((med) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _medRow(
+                    context,
+                    en: med.nameEn,
+                    ur: med.nameUr,
+                    dose: med.doseLabel,
+                    times: med.timeLabel,
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.editMedication,
+                      arguments: med.id,
+                    ),
+                  ),
+                );
+              }),
+            const SizedBox(height: 2),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(

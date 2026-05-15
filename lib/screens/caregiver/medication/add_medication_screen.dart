@@ -185,6 +185,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
                   onTap: () async {
+                    // Bind the onTap event of the photo button to trigger the camera/gallery selection dialog
                     HapticFeedback.selectionClick();
                     await showMedicationPhotoPickerSheet(
                       context,
@@ -351,6 +352,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
           _pickedPhotoBytes != null &&
           _pickedPhotoMime != null &&
           _pickedPhotoMime!.isNotEmpty) {
+        
+        // Pass the selected image bytes to Backend.repo.uploadMedicationPhotoAndSave
         await Backend.repo.uploadMedicationPhotoAndSave(
           patientId: patientId,
           medicationId: medId,

@@ -70,6 +70,20 @@ class DoctorPatientSummary {
   final String subtitle;
 }
 
+class PatientProfile {
+  const PatientProfile({
+    required this.id,
+    required this.fullName,
+    this.phone,
+    required this.role,
+  });
+
+  final String id;
+  final String fullName;
+  final String? phone;
+  final String role;
+}
+
 class BackendRepository {
   BackendRepository(this._client);
 
@@ -163,6 +177,23 @@ class BackendRepository {
         .from('profiles')
         .update({'full_name': fullName})
         .eq('id', userId);
+  }
+
+  Future<PatientProfile?> getPatientProfile(String patientId) async {
+    final data = await _client
+        .from('profiles')
+        .select('id,role,full_name,phone')
+        .eq('id', patientId)
+        .maybeSingle();
+
+    if (data == null) return null;
+
+    return PatientProfile(
+      id: data['id'].toString(),
+      fullName: (data['full_name'] ?? 'Unknown').toString(),
+      phone: data['phone']?.toString(),
+      role: (data['role'] ?? 'patient').toString(),
+    );
   }
 
   Future<String?> getFirstPatientForCaregiver(String caregiverId) async {
