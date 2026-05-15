@@ -69,10 +69,10 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen>
             title: Text(
               'Medication',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+                fontFamily: 'KhayalRoboto',
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             ),
             flexibleSpace: FlexibleSpaceBar(
               background: DecoratedBox(
@@ -80,10 +80,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen>
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      _header,
-                      Color(0xFF4F7058),
-                    ],
+                    colors: [_header, Color(0xFF4F7058)],
                   ),
                 ),
                 child: SafeArea(
@@ -96,7 +93,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen>
                       children: [
                         Text(
                           'پیراسیٹامول',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
                                 fontFamily: 'NotoNastaliqUrdu',
                                 fontSize: 28,
                                 height: 1.25,
@@ -106,7 +104,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen>
                         const SizedBox(height: 6),
                         Text(
                           'Paracetamol',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 fontFamily: 'KhayalRoboto',
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white.withValues(alpha: 0.92),
@@ -122,42 +121,35 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen>
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(18, 20, 18, 32),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final row = _rows[index];
-                  final start = (index * 0.1).clamp(0.0, 0.5);
-                  final end = (0.45 + index * 0.1).clamp(0.0, 1.0);
-                  final anim = CurvedAnimation(
-                    parent: _controller,
-                    curve: Interval(
-                      start,
-                      end,
-                      curve: Curves.easeOutCubic,
-                    ),
-                  );
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: FadeTransition(
-                      opacity: anim,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.1),
-                          end: Offset.zero,
-                        ).animate(anim),
-                        child: _DetailTile(
-                          label: row.label,
-                          value: row.value,
-                          valueIsUrdu: row.urdu,
-                          labelColor: _label,
-                          valueColor: _value,
-                          cardColor: _card,
-                        ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final row = _rows[index];
+                final start = (index * 0.1).clamp(0.0, 0.5);
+                final end = (0.45 + index * 0.1).clamp(0.0, 1.0);
+                final anim = CurvedAnimation(
+                  parent: _controller,
+                  curve: Interval(start, end, curve: Curves.easeOutCubic),
+                );
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: FadeTransition(
+                    opacity: anim,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.1),
+                        end: Offset.zero,
+                      ).animate(anim),
+                      child: _DetailTile(
+                        label: row.label,
+                        value: row.value,
+                        valueIsUrdu: row.urdu,
+                        labelColor: _label,
+                        valueColor: _value,
+                        cardColor: _card,
                       ),
                     ),
-                  );
-                },
-                childCount: _rows.length,
-              ),
+                  ),
+                );
+              }, childCount: _rows.length),
             ),
           ),
         ],
@@ -218,12 +210,12 @@ class _DetailTileState extends State<_DetailTile> {
                     child: Text(
                       widget.label,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontFamily: 'KhayalRoboto',
-                            fontWeight: FontWeight.w600,
-                            color: widget.labelColor,
-                            fontSize: 13,
-                            letterSpacing: 0.2,
-                          ),
+                        fontFamily: 'KhayalRoboto',
+                        fontWeight: FontWeight.w600,
+                        color: widget.labelColor,
+                        fontSize: 13,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                   Expanded(
@@ -231,17 +223,15 @@ class _DetailTileState extends State<_DetailTile> {
                     child: Text(
                       widget.value,
                       textAlign: TextAlign.right,
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontFamily:
-                                    widget.valueIsUrdu
-                                        ? 'NotoNastaliqUrdu'
-                                        : 'KhayalRoboto',
-                                fontWeight: FontWeight.w600,
-                                fontSize: widget.valueIsUrdu ? 17 : 15,
-                                height: widget.valueIsUrdu ? 1.4 : 1.25,
-                                color: widget.valueColor,
-                              ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontFamily: widget.valueIsUrdu
+                            ? 'NotoNastaliqUrdu'
+                            : 'KhayalRoboto',
+                        fontWeight: FontWeight.w600,
+                        fontSize: widget.valueIsUrdu ? 17 : 15,
+                        height: widget.valueIsUrdu ? 1.4 : 1.25,
+                        color: widget.valueColor,
+                      ),
                     ),
                   ),
                 ],

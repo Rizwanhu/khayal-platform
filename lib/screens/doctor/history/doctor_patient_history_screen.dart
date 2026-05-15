@@ -13,7 +13,8 @@ class DoctorPatientHistoryScreen extends StatefulWidget {
       _DoctorPatientHistoryScreenState();
 }
 
-class _DoctorPatientHistoryScreenState extends State<DoctorPatientHistoryScreen> {
+class _DoctorPatientHistoryScreenState
+    extends State<DoctorPatientHistoryScreen> {
   bool _loading = true;
   String? _error;
   List<PatientHistoryRecord> _rows = const [];
@@ -55,19 +56,19 @@ class _DoctorPatientHistoryScreenState extends State<DoctorPatientHistoryScreen>
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Text(_error!)
-              : Column(
-                  children: [
-                    InfoTile(
-                      label: 'Patient ID',
-                      value: AppSession.selectedPatientId ?? '-',
-                    ),
-                    const SizedBox(height: 10),
-                    ..._rows.map(
-                      (r) => HistoryRow(day: r.dayLabel, status: r.status),
-                    ),
-                  ],
+          ? Text(_error!)
+          : Column(
+              children: [
+                InfoTile(
+                  label: 'Patient ID',
+                  value: AppSession.selectedPatientId ?? '-',
                 ),
+                const SizedBox(height: 10),
+                ..._rows.map(
+                  (r) => HistoryRow(day: r.dayLabel, status: r.status),
+                ),
+              ],
+            ),
     );
   }
 }

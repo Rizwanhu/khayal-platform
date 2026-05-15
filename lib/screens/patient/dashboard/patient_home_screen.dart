@@ -161,7 +161,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       return;
     }
     try {
-      final code = await Backend.repo.createPatientLinkCode(patientPhone: phone);
+      final code = await Backend.repo.createPatientLinkCode(
+        patientPhone: phone,
+      );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
@@ -209,23 +211,17 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
               _DashboardHeader(
                 topPadding: topInset,
                 dateLabel: _formatHeaderDate(today),
-                onNotifications: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.notificationOverlay,
-                ),
-                onSettings: () => Navigator.pushNamed(context, AppRoutes.settings),
+                onNotifications: () =>
+                    Navigator.pushNamed(context, AppRoutes.notificationOverlay),
+                onSettings: () =>
+                    Navigator.pushNamed(context, AppRoutes.settings),
                 onHistory: () =>
                     Navigator.pushNamed(context, AppRoutes.patientHistory),
                 onGenerateCode: _generatePatientLinkCode,
               ),
               Expanded(
                 child: ListView.separated(
-                  padding: EdgeInsets.fromLTRB(
-                    18,
-                    18,
-                    18,
-                    bottomInset + 112,
-                  ),
+                  padding: EdgeInsets.fromLTRB(18, 18, 18, bottomInset + 112),
                   physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics(),
                   ),
@@ -237,11 +233,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                     final end = (0.42 + index * 0.11).clamp(0.0, 1.0);
                     final curve = CurvedAnimation(
                       parent: _listController,
-                      curve: Interval(
-                        start,
-                        end,
-                        curve: Curves.easeOutCubic,
-                      ),
+                      curve: Interval(start, end, curve: Curves.easeOutCubic),
                     );
                     return FadeTransition(
                       opacity: curve,
@@ -271,15 +263,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                 curve: const Interval(0, 0.65, curve: Curves.easeOut),
               ),
               child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 1.15),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _summaryController,
-                    curve: Curves.easeOutCubic,
-                  ),
-                ),
+                position:
+                    Tween<Offset>(
+                      begin: const Offset(0, 1.15),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(
+                        parent: _summaryController,
+                        curve: Curves.easeOutCubic,
+                      ),
+                    ),
                 child: _FloatingSummaryBar(
                   taken: _count(_MedStatus.taken),
                   missed: _count(_MedStatus.missed),
@@ -330,22 +323,22 @@ class _DashboardHeader extends StatelessWidget {
                   Text(
                     "Today's Medicines",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 24,
-                          height: 1.15,
-                        ),
+                      fontFamily: 'KhayalRoboto',
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 24,
+                      height: 1.15,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     dateLabel,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          color: Colors.white.withValues(alpha: 0.88),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
+                      fontFamily: 'KhayalRoboto',
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ],
               ),
@@ -476,9 +469,7 @@ class _MedicineCardState extends State<_MedicineCard> {
                             const SizedBox(width: 6),
                             Text(
                               item.time,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     fontFamily: 'KhayalRoboto',
                                     fontWeight: FontWeight.w600,
@@ -492,9 +483,7 @@ class _MedicineCardState extends State<_MedicineCard> {
                                 en: item.doseEn,
                                 ur: item.doseUr,
                               ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     fontFamily: AppLanguageState.isUrdu
                                         ? 'NotoNastaliqUrdu'
@@ -527,12 +516,18 @@ class _StatusIconCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (Color bg, IconData icon) = switch (status) {
-      _MedStatus.taken => (_PatientHomeScreenState._takenIcon, Icons.check_rounded),
+      _MedStatus.taken => (
+        _PatientHomeScreenState._takenIcon,
+        Icons.check_rounded,
+      ),
       _MedStatus.upcoming => (
         _PatientHomeScreenState._upcomingIcon,
         Icons.schedule_rounded,
       ),
-      _MedStatus.missed => (_PatientHomeScreenState._missedIcon, Icons.close_rounded),
+      _MedStatus.missed => (
+        _PatientHomeScreenState._missedIcon,
+        Icons.close_rounded,
+      ),
     };
 
     return Container(
@@ -578,12 +573,12 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontFamily: 'KhayalRoboto',
-              color: fg,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-              letterSpacing: 0.2,
-            ),
+          fontFamily: 'KhayalRoboto',
+          color: fg,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+          letterSpacing: 0.2,
+        ),
       ),
     );
   }
@@ -743,22 +738,22 @@ class _SummarySegment extends StatelessWidget {
                 Text(
                   '$value',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontFamily: 'KhayalRoboto',
-                        fontWeight: FontWeight.w800,
-                        fontSize: 22,
-                        color: valueColor,
-                        height: 1,
-                      ),
+                    fontFamily: 'KhayalRoboto',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 22,
+                    color: valueColor,
+                    height: 1,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   label,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontFamily: 'KhayalRoboto',
-                        color: _PatientHomeScreenState._mutedLabel,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
+                    fontFamily: 'KhayalRoboto',
+                    color: _PatientHomeScreenState._mutedLabel,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

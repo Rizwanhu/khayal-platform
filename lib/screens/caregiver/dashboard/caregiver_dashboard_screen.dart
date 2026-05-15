@@ -13,7 +13,8 @@ class CaregiverDashboardScreen extends StatefulWidget {
   const CaregiverDashboardScreen({super.key});
 
   @override
-  State<CaregiverDashboardScreen> createState() => _CaregiverDashboardScreenState();
+  State<CaregiverDashboardScreen> createState() =>
+      _CaregiverDashboardScreenState();
 }
 
 class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
@@ -40,7 +41,8 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
 
   Future<void> _loadDashboardData() async {
     final caregiverId =
-        AppSession.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
     if (caregiverId == null || caregiverId.isEmpty) {
       if (!mounted) return;
       setState(() {
@@ -52,7 +54,9 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
     }
 
     try {
-      final patientId = await Backend.repo.getFirstPatientForCaregiver(caregiverId);
+      final patientId = await Backend.repo.getFirstPatientForCaregiver(
+        caregiverId,
+      );
       if (patientId == null) {
         if (!mounted) return;
         setState(() {
@@ -181,7 +185,9 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
           ),
           decoration: BoxDecoration(
             color: CaregiverColors.header,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(22),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +198,8 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   children: [
                     Text(
                       'Dashboard',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             fontFamily: 'KhayalRoboto',
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
@@ -203,10 +210,10 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     Text(
                       'Patient: $_patientName',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontFamily: 'KhayalRoboto',
-                            color: Colors.white.withValues(alpha: 0.92),
-                            fontSize: 15,
-                          ),
+                        fontFamily: 'KhayalRoboto',
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 15,
+                      ),
                     ),
                   ],
                 ),
@@ -278,11 +285,11 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
             Text(
               "Today's Status",
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                    color: CaregiverColors.textPrimary,
-                  ),
+                fontFamily: 'KhayalRoboto',
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                color: CaregiverColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 18),
             Row(
@@ -345,11 +352,11 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
               Text(
                 value,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w800,
-                      fontSize: 22,
-                      color: iconColor,
-                    ),
+                  fontFamily: 'KhayalRoboto',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  color: iconColor,
+                ),
               ),
               const SizedBox(height: 10),
               Container(
@@ -362,10 +369,10 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      color: CaregiverColors.textMuted,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  fontFamily: 'KhayalRoboto',
+                  color: CaregiverColors.textMuted,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -389,15 +396,18 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   child: Text(
                     'Weekly Adherence',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                          color: CaregiverColors.textPrimary,
-                        ),
+                      fontFamily: 'KhayalRoboto',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                      color: CaregiverColors.textPrimary,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: CaregiverColors.takenSoft,
                     borderRadius: BorderRadius.circular(999),
@@ -414,10 +424,10 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                       Text(
                         '89%',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              fontFamily: 'KhayalRoboto',
-                              fontWeight: FontWeight.w800,
-                              color: CaregiverColors.taken,
-                            ),
+                          fontFamily: 'KhayalRoboto',
+                          fontWeight: FontWeight.w800,
+                          color: CaregiverColors.taken,
+                        ),
                       ),
                     ],
                   ),
@@ -448,7 +458,8 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                           const SizedBox(height: 8),
                           Text(
                             days[i],
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
                                   fontFamily: 'KhayalRoboto',
                                   color: CaregiverColors.textMuted,
                                   fontWeight: FontWeight.w600,
@@ -499,20 +510,20 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                 Text(
                   'Overall Adherence Rate',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontFamily: 'KhayalRoboto',
-                        fontWeight: FontWeight.w700,
-                        color: CaregiverColors.textPrimary,
-                      ),
+                    fontFamily: 'KhayalRoboto',
+                    fontWeight: FontWeight.w700,
+                    color: CaregiverColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   '89%',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontFamily: 'KhayalRoboto',
-                        fontWeight: FontWeight.w800,
-                        fontSize: 40,
-                        color: CaregiverColors.header,
-                      ),
+                    fontFamily: 'KhayalRoboto',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 40,
+                    color: CaregiverColors.header,
+                  ),
                 ),
               ],
             ),
@@ -535,11 +546,11 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   child: Text(
                     'Medications',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                          color: CaregiverColors.textPrimary,
-                        ),
+                      fontFamily: 'KhayalRoboto',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                      color: CaregiverColors.textPrimary,
+                    ),
                   ),
                 ),
                 TextButton(
@@ -553,23 +564,31 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   child: Text(
                     'See all',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          fontWeight: FontWeight.w700,
-                          color: CaregiverColors.header,
-                        ),
+                      fontFamily: 'KhayalRoboto',
+                      fontWeight: FontWeight.w700,
+                      color: CaregiverColors.header,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             if (_loading)
-              const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              )
             else if (_error != null)
               Text(_error!, style: const TextStyle(color: Colors.red))
             else if (_medications.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('No medications added yet.', style: TextStyle(color: CaregiverColors.textMuted)),
+                child: Text(
+                  'No medications added yet.',
+                  style: TextStyle(color: CaregiverColors.textMuted),
+                ),
               )
             else
               ..._medications.take(3).map((med) {
@@ -639,22 +658,22 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     Text(
                       AppLanguageState.pick(en: en, ur: ur),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontFamily: AppLanguageState.isUrdu
-                                ? 'NotoNastaliqUrdu'
-                                : 'KhayalRoboto',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: CaregiverColors.textPrimary,
-                          ),
+                        fontFamily: AppLanguageState.isUrdu
+                            ? 'NotoNastaliqUrdu'
+                            : 'KhayalRoboto',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: CaregiverColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       dose,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontFamily: 'KhayalRoboto',
-                            color: CaregiverColors.textMuted,
-                            fontSize: 13,
-                          ),
+                        fontFamily: 'KhayalRoboto',
+                        color: CaregiverColors.textMuted,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -664,12 +683,12 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                 times,
                 textAlign: TextAlign.right,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                      color: CaregiverColors.textMuted,
-                      height: 1.3,
-                    ),
+                  fontFamily: 'KhayalRoboto',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: CaregiverColors.textMuted,
+                  height: 1.3,
+                ),
               ),
             ],
           ),
@@ -678,7 +697,10 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
     );
   }
 
-  Widget _shadowCard({required Widget child, Color color = CaregiverColors.card}) {
+  Widget _shadowCard({
+    required Widget child,
+    Color color = CaregiverColors.card,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: color,
@@ -699,10 +721,9 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
 class _DottedLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = CaregiverColors.fieldBorder.withValues(alpha: 0.6)
-          ..strokeWidth = 1;
+    final paint = Paint()
+      ..color = CaregiverColors.fieldBorder.withValues(alpha: 0.6)
+      ..strokeWidth = 1;
     const dash = 4.0;
     const gap = 4.0;
     double x = 0;

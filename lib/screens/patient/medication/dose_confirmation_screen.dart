@@ -35,10 +35,7 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
       curve: Curves.easeOutCubic,
     );
     _scale = Tween<double>(begin: 0.92, end: 1).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: Curves.easeOutBack,
-      ),
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutBack),
     );
     _entranceController.forward();
   }
@@ -100,10 +97,10 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
         title: Text(
           'Reminder',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontFamily: 'KhayalRoboto',
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF333333),
-              ),
+            fontFamily: 'KhayalRoboto',
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF333333),
+          ),
         ),
         centerTitle: true,
       ),
@@ -116,10 +113,7 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
               builder: (context, child) {
                 return Opacity(
                   opacity: _fade.value,
-                  child: Transform.scale(
-                    scale: _scale.value,
-                    child: child,
-                  ),
+                  child: Transform.scale(scale: _scale.value, child: child),
                 );
               },
               child: DoseReminderPanel(

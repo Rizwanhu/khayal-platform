@@ -9,10 +9,7 @@ abstract final class AppLanguageState {
 
   static bool get isUrdu => current == AppLanguage.urdu;
 
-  static String pick({
-    required String en,
-    required String ur,
-  }) {
+  static String pick({required String en, required String ur}) {
     return isUrdu ? ur : en;
   }
 }

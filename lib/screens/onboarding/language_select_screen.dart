@@ -38,11 +38,11 @@ class LanguageSelectScreen extends StatelessWidget {
                 'Select Your Language',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 18,
-                      color: _instructionGray,
-                    ),
+                  fontFamily: 'KhayalRoboto',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 18,
+                  color: _instructionGray,
+                ),
               ),
               const SizedBox(height: 14),
               const Text(

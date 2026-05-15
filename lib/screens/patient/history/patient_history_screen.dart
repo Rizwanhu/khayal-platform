@@ -58,12 +58,12 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Text(_error!)
-              : Column(
-                  children: _rows
-                      .map((r) => HistoryRow(day: r.dayLabel, status: r.status))
-                      .toList(),
-                ),
+          ? Text(_error!)
+          : Column(
+              children: _rows
+                  .map((r) => HistoryRow(day: r.dayLabel, status: r.status))
+                  .toList(),
+            ),
     );
   }
 }

@@ -53,10 +53,8 @@ class _MedicationSignedThumbState extends State<MedicationSignedThumb> {
             return Image.network(
               u,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Icon(
-                Icons.broken_image_outlined,
-                size: widget.size * 0.45,
-              ),
+              errorBuilder: (_, __, ___) =>
+                  Icon(Icons.broken_image_outlined, size: widget.size * 0.45),
             );
           },
         ),
@@ -108,9 +106,9 @@ Future<void> showMedicationPhotoPickerSheet(
               Text(
                 'Add pill photo',
                 style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w800,
-                    ),
+                  fontFamily: 'KhayalRoboto',
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 12),
               ListTile(
@@ -166,7 +164,7 @@ Future<void> _pickAndDeliver(
       imageQuality: 85,
     );
     if (x == null) return;
-    
+
     final bytes = await x.readAsBytes();
     if (bytes.isEmpty) return;
     final mime = x.mimeType ?? _mimeFromPath(x.path);

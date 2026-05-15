@@ -42,15 +42,10 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
       parent: _cardController,
       curve: const Interval(0.1, 1, curve: Curves.easeOutCubic),
     );
-    _cardSlide = Tween<Offset>(
-      begin: const Offset(0, 0.18),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _cardController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.18), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic),
+        );
 
     _scrimController.forward();
     Future<void>.delayed(const Duration(milliseconds: 60), () {
@@ -105,7 +100,9 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
                   _close();
                 },
                 child: Container(
-                  color: Colors.black.withValues(alpha: 0.42 * _scrimOpacity.value),
+                  color: Colors.black.withValues(
+                    alpha: 0.42 * _scrimOpacity.value,
+                  ),
                 ),
               ),
               Center(
@@ -113,17 +110,17 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 22),
                   child: FadeTransition(
                     opacity: _cardFade,
-                  child: SlideTransition(
-                    position: _cardSlide,
-                    child: DoseReminderPanel(
-                      nameEn: 'Paracetamol',
-                      nameUr: 'پیراسیٹامول',
-                      time: '08:00',
-                      doseUr: '1 گولی',
-                      onTookIt: _onTookIt,
-                      onSnooze: _onSnooze,
+                    child: SlideTransition(
+                      position: _cardSlide,
+                      child: DoseReminderPanel(
+                        nameEn: 'Paracetamol',
+                        nameUr: 'پیراسیٹامول',
+                        time: '08:00',
+                        doseUr: '1 گولی',
+                        onTookIt: _onTookIt,
+                        onSnooze: _onSnooze,
+                      ),
                     ),
-                  ),
                   ),
                 ),
               ),

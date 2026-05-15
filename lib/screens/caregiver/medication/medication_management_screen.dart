@@ -65,7 +65,8 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
 
   Future<void> _loadMeds() async {
     final caregiverId =
-        AppSession.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
     if (caregiverId == null || caregiverId.isEmpty) {
       setState(() {
         _loading = false;
@@ -75,7 +76,9 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
     }
 
     try {
-      final patientId = await Backend.repo.getFirstPatientForCaregiver(caregiverId);
+      final patientId = await Backend.repo.getFirstPatientForCaregiver(
+        caregiverId,
+      );
       if (patientId == null) {
         setState(() {
           _loading = false;
@@ -130,10 +133,10 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
         title: Text(
           'Medications',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontFamily: 'KhayalRoboto',
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
+            fontFamily: 'KhayalRoboto',
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
         ),
         actions: [
           IconButton(
@@ -161,51 +164,57 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
             Navigator.pushNamed(context, AppRoutes.addMedication);
           },
           icon: const Icon(Icons.add),
-          label: const Text('Add', style: TextStyle(fontFamily: 'KhayalRoboto', fontWeight: FontWeight.w700)),
+          label: const Text(
+            'Add',
+            style: TextStyle(
+              fontFamily: 'KhayalRoboto',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(_error!, textAlign: TextAlign.center),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadMeds,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: _items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      final a = _anim(index);
-                      return FadeTransition(
-                        opacity: a,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.1),
-                            end: Offset.zero,
-                          ).animate(a),
-                          child: _MedTile(
-                            item: item,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.editMedication,
-                                arguments: item.id,
-                              );
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(_error!, textAlign: TextAlign.center),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadMeds,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
+                physics: const BouncingScrollPhysics(),
+                itemCount: _items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final item = _items[index];
+                  final a = _anim(index);
+                  return FadeTransition(
+                    opacity: a,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.1),
+                        end: Offset.zero,
+                      ).animate(a),
+                      child: _MedTile(
+                        item: item,
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.editMedication,
+                            arguments: item.id,
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }
@@ -255,7 +264,9 @@ class _MedTileState extends State<_MedTile> {
                   children: [
                     if (item.imageStoragePath != null &&
                         item.imageStoragePath!.isNotEmpty) ...[
-                      MedicationSignedThumb(storagePath: item.imageStoragePath!),
+                      MedicationSignedThumb(
+                        storagePath: item.imageStoragePath!,
+                      ),
                       const SizedBox(width: 12),
                     ],
                     Expanded(
@@ -264,7 +275,8 @@ class _MedTileState extends State<_MedTile> {
                         children: [
                           Text(
                             AppLanguageState.pick(en: item.en, ur: item.ur),
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
                                   fontFamily: AppLanguageState.isUrdu
                                       ? 'NotoNastaliqUrdu'
                                       : 'KhayalRoboto',
@@ -276,7 +288,8 @@ class _MedTileState extends State<_MedTile> {
                           const SizedBox(height: 8),
                           Text(
                             item.schedule,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
                                   fontFamily: 'KhayalRoboto',
                                   color: CaregiverColors.textMuted,
                                   fontSize: 13,
@@ -292,7 +305,8 @@ class _MedTileState extends State<_MedTile> {
                         Text(
                           item.times,
                           textAlign: TextAlign.right,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
                                 fontFamily: 'KhayalRoboto',
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,

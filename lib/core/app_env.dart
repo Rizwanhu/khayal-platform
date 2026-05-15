@@ -16,21 +16,23 @@ abstract final class AppEnv {
       (dotenv.env['DEV_OTP_BYPASS'] ?? '').toLowerCase() == 'true';
 
   /// Returns `(email, password)` for [role] when [devOtpBypass] is enabled and env is set.
-  static (String email, String password)? bypassEmailPasswordForRole(AppRole role) {
+  static (String email, String password)? bypassEmailPasswordForRole(
+    AppRole role,
+  ) {
     if (!devOtpBypass) return null;
     final (keyE, keyP) = switch (role) {
       AppRole.patient => (
-          'DEV_BYPASS_PATIENT_EMAIL',
-          'DEV_BYPASS_PATIENT_PASSWORD',
-        ),
+        'DEV_BYPASS_PATIENT_EMAIL',
+        'DEV_BYPASS_PATIENT_PASSWORD',
+      ),
       AppRole.caregiver => (
-          'DEV_BYPASS_CAREGIVER_EMAIL',
-          'DEV_BYPASS_CAREGIVER_PASSWORD',
-        ),
+        'DEV_BYPASS_CAREGIVER_EMAIL',
+        'DEV_BYPASS_CAREGIVER_PASSWORD',
+      ),
       AppRole.doctor => (
-          'DEV_BYPASS_DOCTOR_EMAIL',
-          'DEV_BYPASS_DOCTOR_PASSWORD',
-        ),
+        'DEV_BYPASS_DOCTOR_EMAIL',
+        'DEV_BYPASS_DOCTOR_PASSWORD',
+      ),
     };
     final email = dotenv.env[keyE]?.trim() ?? '';
     final password = dotenv.env[keyP]?.trim() ?? '';

@@ -35,7 +35,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
   String? _pickedPhotoMime;
 
   static const _types = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
-  static const _frequencies = ['Daily', 'Twice daily', 'Three times daily', 'Weekly'];
+  static const _frequencies = [
+    'Daily',
+    'Twice daily',
+    'Three times daily',
+    'Weekly',
+  ];
 
   @override
   void initState() {
@@ -94,7 +99,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: CaregiverColors.headerForm, width: 2),
+        borderSide: const BorderSide(
+          color: CaregiverColors.headerForm,
+          width: 2,
+        ),
       ),
     );
   }
@@ -117,144 +125,224 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
         title: Text(
           'Add New Medication',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontFamily: 'KhayalRoboto',
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+            fontFamily: 'KhayalRoboto',
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         physics: const BouncingScrollPhysics(),
         children: [
-          _fadeSlide(0, TextField(controller: _urdu, decoration: _dec('Medicine Name (Urdu)'), textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'NotoNastaliqUrdu', fontSize: 16))),
+          _fadeSlide(
+            0,
+            TextField(
+              controller: _urdu,
+              decoration: _dec('Medicine Name (Urdu)'),
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontFamily: 'NotoNastaliqUrdu',
+                fontSize: 16,
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          _fadeSlide(1, TextField(controller: _english, decoration: _dec('Medicine Name (English)'), style: const TextStyle(fontFamily: 'KhayalRoboto'))),
+          _fadeSlide(
+            1,
+            TextField(
+              controller: _english,
+              decoration: _dec('Medicine Name (English)'),
+              style: const TextStyle(fontFamily: 'KhayalRoboto'),
+            ),
+          ),
           const SizedBox(height: 16),
-          _fadeSlide(2, TextField(controller: _dose, decoration: _dec('Dose Amount'), style: const TextStyle(fontFamily: 'KhayalRoboto'))),
+          _fadeSlide(
+            2,
+            TextField(
+              controller: _dose,
+              decoration: _dec('Dose Amount'),
+              style: const TextStyle(fontFamily: 'KhayalRoboto'),
+            ),
+          ),
           const SizedBox(height: 16),
-          _fadeSlide(3, _dropdown(context, label: 'Type', value: _type, items: _types, onChanged: (v) => setState(() => _type = v ?? _type))),
+          _fadeSlide(
+            3,
+            _dropdown(
+              context,
+              label: 'Type',
+              value: _type,
+              items: _types,
+              onChanged: (v) => setState(() => _type = v ?? _type),
+            ),
+          ),
           const SizedBox(height: 16),
-          _fadeSlide(4, _dropdown(context, label: 'Frequency', value: _frequency, items: _frequencies, onChanged: (v) => setState(() => _frequency = v ?? _frequency))),
+          _fadeSlide(
+            4,
+            _dropdown(
+              context,
+              label: 'Frequency',
+              value: _frequency,
+              items: _frequencies,
+              onChanged: (v) => setState(() => _frequency = v ?? _frequency),
+            ),
+          ),
           const SizedBox(height: 16),
-          _fadeSlide(5, TextField(controller: _times, decoration: _dec('Times'), style: const TextStyle(fontFamily: 'KhayalRoboto'))),
+          _fadeSlide(
+            5,
+            TextField(
+              controller: _times,
+              decoration: _dec('Times'),
+              style: const TextStyle(fontFamily: 'KhayalRoboto'),
+            ),
+          ),
           const SizedBox(height: 24),
-          _fadeSlide(6, Listener(
-            onPointerDown: (_) => setState(() => _saveScale = 0.97),
-            onPointerUp: (_) => setState(() => _saveScale = 1),
-            onPointerCancel: (_) => setState(() => _saveScale = 1),
-            child: AnimatedScale(
-              scale: _saveScale,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.easeOutCubic,
-              child: SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: CaregiverColors.headerForm,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontFamily: 'KhayalRoboto', fontWeight: FontWeight.w800),
+          _fadeSlide(
+            6,
+            Listener(
+              onPointerDown: (_) => setState(() => _saveScale = 0.97),
+              onPointerUp: (_) => setState(() => _saveScale = 1),
+              onPointerCancel: (_) => setState(() => _saveScale = 1),
+              child: AnimatedScale(
+                scale: _saveScale,
+                duration: const Duration(milliseconds: 100),
+                curve: Curves.easeOutCubic,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: CaregiverColors.headerForm,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      textStyle: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    onPressed: _saving
+                        ? null
+                        : () async {
+                            HapticFeedback.mediumImpact();
+                            await _saveMedication(context);
+                          },
+                    child: Text(_saving ? 'Saving...' : 'Save Medication'),
                   ),
-                  onPressed: _saving
-                      ? null
-                      : () async {
-                          HapticFeedback.mediumImpact();
-                          await _saveMedication(context);
-                        },
-                  child: Text(_saving ? 'Saving...' : 'Save Medication'),
                 ),
               ),
             ),
-          )),
+          ),
           const SizedBox(height: 28),
-          _fadeSlide(7, Text('Pill Photo', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontFamily: 'KhayalRoboto', fontWeight: FontWeight.w700, color: CaregiverColors.textPrimary))),
+          _fadeSlide(
+            7,
+            Text(
+              'Pill Photo',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontFamily: 'KhayalRoboto',
+                fontWeight: FontWeight.w700,
+                color: CaregiverColors.textPrimary,
+              ),
+            ),
+          ),
           const SizedBox(height: 10),
-          _fadeSlide(8, Listener(
-            onPointerDown: (_) => setState(() => _uploadScale = 0.98),
-            onPointerUp: (_) => setState(() => _uploadScale = 1),
-            onPointerCancel: (_) => setState(() => _uploadScale = 1),
-            child: AnimatedScale(
-              scale: _uploadScale,
-              duration: const Duration(milliseconds: 110),
-              curve: Curves.easeOutCubic,
-              child: Material(
-                color: CaregiverColors.fieldFill,
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
+          _fadeSlide(
+            8,
+            Listener(
+              onPointerDown: (_) => setState(() => _uploadScale = 0.98),
+              onPointerUp: (_) => setState(() => _uploadScale = 1),
+              onPointerCancel: (_) => setState(() => _uploadScale = 1),
+              child: AnimatedScale(
+                scale: _uploadScale,
+                duration: const Duration(milliseconds: 110),
+                curve: Curves.easeOutCubic,
+                child: Material(
+                  color: CaregiverColors.fieldFill,
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () async {
-                    // Bind the onTap event of the photo button to trigger the camera/gallery selection dialog
-                    HapticFeedback.selectionClick();
-                    await showMedicationPhotoPickerSheet(
-                      context,
-                      onPicked: (bytes, mime) {
-                        setState(() {
-                          _pickedPhotoBytes = bytes;
-                          _pickedPhotoMime = mime;
-                        });
-                      },
-                    );
-                  },
-                  child: CustomPaint(
-                    foregroundPainter: _DashedRectPainter(
-                      color: CaregiverColors.fieldBorder,
-                      radius: 16,
-                    ),
-                    child: SizedBox(
-                      height: 140,
-                      width: double.infinity,
-                      child: _pickedPhotoBytes != null
-                          ? Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                MedicationMemoryPhotoPreview(
-                                  bytes: _pickedPhotoBytes!,
-                                  height: 140,
-                                  borderRadius: 16,
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: Material(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: IconButton(
-                                      visualDensity: VisualDensity.compact,
-                                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                                      onPressed: () {
-                                        setState(() {
-                                          _pickedPhotoBytes = null;
-                                          _pickedPhotoMime = null;
-                                        });
-                                      },
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      // Bind the onTap event of the photo button to trigger the camera/gallery selection dialog
+                      HapticFeedback.selectionClick();
+                      await showMedicationPhotoPickerSheet(
+                        context,
+                        onPicked: (bytes, mime) {
+                          setState(() {
+                            _pickedPhotoBytes = bytes;
+                            _pickedPhotoMime = mime;
+                          });
+                        },
+                      );
+                    },
+                    child: CustomPaint(
+                      foregroundPainter: _DashedRectPainter(
+                        color: CaregiverColors.fieldBorder,
+                        radius: 16,
+                      ),
+                      child: SizedBox(
+                        height: 140,
+                        width: double.infinity,
+                        child: _pickedPhotoBytes != null
+                            ? Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  MedicationMemoryPhotoPreview(
+                                    bytes: _pickedPhotoBytes!,
+                                    height: 140,
+                                    borderRadius: 16,
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Material(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: IconButton(
+                                        visualDensity: VisualDensity.compact,
+                                        icon: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _pickedPhotoBytes = null;
+                                            _pickedPhotoMime = null;
+                                          });
+                                        },
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            )
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.photo_camera_outlined, size: 40, color: CaregiverColors.textMuted),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Upload Photo',
-                                  style: TextStyle(
-                                    fontFamily: 'KhayalRoboto',
-                                    fontWeight: FontWeight.w600,
+                                ],
+                              )
+                            : const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.photo_camera_outlined,
+                                    size: 40,
                                     color: CaregiverColors.textMuted,
                                   ),
-                                ),
-                              ],
-                            ),
+                                  SizedBox(height: 10),
+                                  Text(
+                                    'Upload Photo',
+                                    style: TextStyle(
+                                      fontFamily: 'KhayalRoboto',
+                                      fontWeight: FontWeight.w600,
+                                      color: CaregiverColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -279,15 +367,17 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
             fontSize: 16,
             color: CaregiverColors.textPrimary,
           ),
-          items:
-              items
-                  .map(
-                    (e) => DropdownMenuItem(
-                      value: e,
-                      child: Text(e, style: const TextStyle(fontFamily: 'KhayalRoboto')),
-                    ),
-                  )
-                  .toList(),
+          items: items
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(
+                    e,
+                    style: const TextStyle(fontFamily: 'KhayalRoboto'),
+                  ),
+                ),
+              )
+              .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -299,7 +389,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
     return FadeTransition(
       opacity: a,
       child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(a),
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.08),
+          end: Offset.zero,
+        ).animate(a),
         child: child,
       ),
     );
@@ -307,7 +400,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
 
   Future<void> _saveMedication(BuildContext context) async {
     final caregiverId =
-        AppSession.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
     var patientId = AppSession.selectedPatientId;
 
     if (caregiverId == null || caregiverId.isEmpty) {
@@ -352,7 +446,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
           _pickedPhotoBytes != null &&
           _pickedPhotoMime != null &&
           _pickedPhotoMime!.isNotEmpty) {
-        
         // Pass the selected image bytes to Backend.repo.uploadMedicationPhotoAndSave
         await Backend.repo.uploadMedicationPhotoAndSave(
           patientId: patientId,
@@ -403,7 +496,10 @@ class _DashedRectPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final r = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius));
+    final r = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
     final path = Path()..addRRect(r);
     final paint = Paint()
       ..color = color

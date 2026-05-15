@@ -8,7 +8,8 @@ class PatientProfileSetupScreen extends StatefulWidget {
   const PatientProfileSetupScreen({super.key});
 
   @override
-  State<PatientProfileSetupScreen> createState() => _PatientProfileSetupScreenState();
+  State<PatientProfileSetupScreen> createState() =>
+      _PatientProfileSetupScreenState();
 }
 
 class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
@@ -96,7 +97,9 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: _patientNameUrController,
-              decoration: const InputDecoration(labelText: 'Patient Name (Urdu)'),
+              decoration: const InputDecoration(
+                labelText: 'Patient Name (Urdu)',
+              ),
             ),
             const SizedBox(height: 10),
             TextField(

@@ -12,7 +12,8 @@ class CaregiverRegistrationScreen extends StatefulWidget {
       _CaregiverRegistrationScreenState();
 }
 
-class _CaregiverRegistrationScreenState extends State<CaregiverRegistrationScreen> {
+class _CaregiverRegistrationScreenState
+    extends State<CaregiverRegistrationScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _relationshipController = TextEditingController();
@@ -32,14 +33,18 @@ class _CaregiverRegistrationScreenState extends State<CaregiverRegistrationScree
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Session missing. Please login again.')),
       );
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.roleSelect, (r) => false);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.roleSelect,
+        (r) => false,
+      );
       return;
     }
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter full name.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter full name.')));
       return;
     }
     setState(() => _saving = true);
@@ -56,9 +61,9 @@ class _CaregiverRegistrationScreenState extends State<CaregiverRegistrationScree
       Navigator.pushNamed(context, AppRoutes.patientProfileSetup);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -92,9 +97,7 @@ class _CaregiverRegistrationScreenState extends State<CaregiverRegistrationScree
               child: ElevatedButton(
                 onPressed: _saving ? null : _saveAndContinue,
                 child: Text(
-                  _saving
-                      ? 'Saving...'
-                      : 'Continue to Patient Profile Setup',
+                  _saving ? 'Saving...' : 'Continue to Patient Profile Setup',
                 ),
               ),
             ),

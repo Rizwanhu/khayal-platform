@@ -121,17 +121,17 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen>
             Text(
               'Alert History',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
+                fontFamily: 'KhayalRoboto',
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
             ),
             Text(
               '${_alerts.length} alerts',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    color: Colors.white.withValues(alpha: 0.88),
-                  ),
+                fontFamily: 'KhayalRoboto',
+                color: Colors.white.withValues(alpha: 0.88),
+              ),
             ),
           ],
         ),
@@ -175,8 +175,12 @@ class _AlertCardState extends State<_AlertCard> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final isRed = item.tone == _AlertTone.escalated;
-    final accent = isRed ? CaregiverColors.alertRed : CaregiverColors.alertOrange;
-    final soft = isRed ? CaregiverColors.missedSoft : CaregiverColors.upcomingSoft;
+    final accent = isRed
+        ? CaregiverColors.alertRed
+        : CaregiverColors.alertOrange;
+    final soft = isRed
+        ? CaregiverColors.missedSoft
+        : CaregiverColors.upcomingSoft;
 
     return Listener(
       onPointerDown: (_) => setState(() => _scale = 0.99),
@@ -239,8 +243,8 @@ class _AlertCardState extends State<_AlertCard> {
                                                 fontFamily: 'KhayalRoboto',
                                                 fontWeight: FontWeight.w800,
                                                 fontSize: 16,
-                                                color: CaregiverColors
-                                                    .textPrimary,
+                                                color:
+                                                    CaregiverColors.textPrimary,
                                               ),
                                         ),
                                         const SizedBox(height: 4),
@@ -253,8 +257,8 @@ class _AlertCardState extends State<_AlertCard> {
                                                 fontFamily: 'NotoNastaliqUrdu',
                                                 fontSize: 15,
                                                 height: 1.35,
-                                                color: CaregiverColors
-                                                    .textPrimary,
+                                                color:
+                                                    CaregiverColors.textPrimary,
                                               ),
                                         ),
                                       ],
@@ -268,7 +272,9 @@ class _AlertCardState extends State<_AlertCard> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: CaregiverColors.missedSoft,
-                                        borderRadius: BorderRadius.circular(999),
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
                                       ),
                                       child: Text(
                                         'Escalated',
@@ -300,9 +306,7 @@ class _AlertCardState extends State<_AlertCard> {
                               const SizedBox(height: 6),
                               Text(
                                 item.dateLine,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
                                       fontFamily: 'KhayalRoboto',
                                       color: CaregiverColors.textMuted,
@@ -339,10 +343,10 @@ class _AlertCardState extends State<_AlertCard> {
           child: Text(
             text,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontFamily: 'KhayalRoboto',
-                  color: CaregiverColors.textMuted,
-                  fontSize: 13,
-                ),
+              fontFamily: 'KhayalRoboto',
+              color: CaregiverColors.textMuted,
+              fontSize: 13,
+            ),
           ),
         ),
       ],
@@ -385,11 +389,11 @@ class _BannerStrip extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    color: CaregiverColors.textPrimary,
-                    fontSize: 13,
-                    height: 1.35,
-                  ),
+                fontFamily: 'KhayalRoboto',
+                color: CaregiverColors.textPrimary,
+                fontSize: 13,
+                height: 1.35,
+              ),
             ),
           ),
         ],

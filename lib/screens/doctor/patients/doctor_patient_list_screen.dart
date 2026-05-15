@@ -11,7 +11,8 @@ class DoctorPatientListScreen extends StatefulWidget {
   const DoctorPatientListScreen({super.key});
 
   @override
-  State<DoctorPatientListScreen> createState() => _DoctorPatientListScreenState();
+  State<DoctorPatientListScreen> createState() =>
+      _DoctorPatientListScreenState();
 }
 
 class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
@@ -27,7 +28,8 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
 
   Future<void> _load() async {
     final doctorId =
-        AppSession.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
     if (doctorId == null || doctorId.isEmpty) {
       setState(() {
         _loading = false;
@@ -57,28 +59,28 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Text(_error!)
-              : Column(
-                  children: _patients
-                      .map(
-                        (p) => Card(
-                          child: ListTile(
-                            leading: const CircleAvatar(child: Icon(Icons.person)),
-                            title: Text(p.patientName),
-                            subtitle: Text(p.subtitle),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () {
-                              AppSession.selectedPatientId = p.patientId;
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.doctorPatientHistory,
-                              );
-                            },
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
+          ? Text(_error!)
+          : Column(
+              children: _patients
+                  .map(
+                    (p) => Card(
+                      child: ListTile(
+                        leading: const CircleAvatar(child: Icon(Icons.person)),
+                        title: Text(p.patientName),
+                        subtitle: Text(p.subtitle),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          AppSession.selectedPatientId = p.patientId;
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.doctorPatientHistory,
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
     );
   }
 }

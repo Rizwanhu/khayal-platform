@@ -18,6 +18,7 @@ class MedicationRecord {
   final String nameUr;
   final String doseLabel;
   final String timeLabel;
+
   /// Path inside bucket `medication-photos`; use [BackendRepository.signedMedicationImageUrl].
   final String? imageStoragePath;
 }
@@ -91,9 +92,7 @@ class BackendRepository {
 
   static const medicationPhotosBucket = 'medication-photos';
 
-  Future<String> createPatientLinkCode({
-    required String patientPhone,
-  }) async {
+  Future<String> createPatientLinkCode({required String patientPhone}) async {
     final code = (100000 + DateTime.now().millisecondsSinceEpoch % 900000)
         .toString();
     final expiresAt = DateTime.now().toUtc().add(const Duration(minutes: 10));
@@ -145,10 +144,13 @@ class BackendRepository {
       'status': 'active',
     });
 
-    await _client.from('otp_artifacts').update({
-      'used_at': DateTime.now().toUtc().toIso8601String(),
-      'caregiver_id': caregiverId,
-    }).eq('id', artifact['id'].toString());
+    await _client
+        .from('otp_artifacts')
+        .update({
+          'used_at': DateTime.now().toUtc().toIso8601String(),
+          'caregiver_id': caregiverId,
+        })
+        .eq('id', artifact['id'].toString());
 
     return true;
   }
@@ -199,11 +201,11 @@ class BackendRepository {
   Future<String?> getFirstPatientForCaregiver(String caregiverId) async {
     final links = List<Map<String, dynamic>>.from(
       await _client
-        .from('caregiver_patient_links')
-        .select('patient_id,status')
-        .eq('caregiver_id', caregiverId)
-        .eq('status', 'active')
-        .limit(1),
+          .from('caregiver_patient_links')
+          .select('patient_id,status')
+          .eq('caregiver_id', caregiverId)
+          .eq('status', 'active')
+          .limit(1),
     );
 
     if (links.isEmpty) return null;
@@ -213,10 +215,10 @@ class BackendRepository {
   Future<List<String>> getPatientIdsForDoctor(String doctorId) async {
     final links = List<Map<String, dynamic>>.from(
       await _client
-        .from('doctor_patient_links')
-        .select('patient_id,status')
-        .eq('doctor_id', doctorId)
-        .eq('status', 'active'),
+          .from('doctor_patient_links')
+          .select('patient_id,status')
+          .eq('doctor_id', doctorId)
+          .eq('status', 'active'),
     );
     return links
         .map((e) => e['patient_id'] as String?)
@@ -229,19 +231,20 @@ class BackendRepository {
   ) async {
     final rows = List<Map<String, dynamic>>.from(
       await _client
-        .from('medications')
-        .select(
-          'id,english_name,urdu_name,dose_amount,dose_unit,image_storage_path,'
-          'medication_schedules(local_time)',
-        )
-        .eq('patient_id', patientId)
-        .eq('is_active', true),
+          .from('medications')
+          .select(
+            'id,english_name,urdu_name,dose_amount,dose_unit,image_storage_path,'
+            'medication_schedules(local_time)',
+          )
+          .eq('patient_id', patientId)
+          .eq('is_active', true),
     );
 
     return rows.map((row) {
       final schedules = (row['medication_schedules'] as List<dynamic>? ?? []);
       final firstTime = schedules.isNotEmpty
-          ? ((schedules.first as Map<String, dynamic>)['local_time']?.toString() ??
+          ? ((schedules.first as Map<String, dynamic>)['local_time']
+                    ?.toString() ??
                 '--:--')
           : '--:--';
       final path = row['image_storage_path'];
@@ -305,9 +308,10 @@ class BackendRepository {
     String medicationId,
     String? imageStoragePath,
   ) async {
-    await _client.from('medications').update({
-      'image_storage_path': imageStoragePath,
-    }).eq('id', medicationId);
+    await _client
+        .from('medications')
+        .update({'image_storage_path': imageStoragePath})
+        .eq('id', medicationId);
   }
 
   String _imageExtensionForContentType(String contentType) {
@@ -326,13 +330,12 @@ class BackendRepository {
   }) async {
     final ext = _imageExtensionForContentType(contentType);
     final path = '$patientId/$medicationId.$ext';
-    await _client.storage.from(medicationPhotosBucket).uploadBinary(
+    await _client.storage
+        .from(medicationPhotosBucket)
+        .uploadBinary(
           path,
           bytes,
-          fileOptions: FileOptions(
-            contentType: contentType,
-            upsert: true,
-          ),
+          fileOptions: FileOptions(contentType: contentType, upsert: true),
         );
     await setMedicationImageStoragePath(medicationId, path);
   }
@@ -387,15 +390,21 @@ class BackendRepository {
     required List<String> times,
   }) async {
     final dose = double.tryParse(doseAmountRaw.trim()) ?? 1;
-    await _client.from('medications').update({
-      'urdu_name': urduName,
-      'english_name': englishName,
-      'dose_amount': dose,
-      'dose_unit': doseUnit,
-      'medication_type': medicationType,
-    }).eq('id', medicationId);
+    await _client
+        .from('medications')
+        .update({
+          'urdu_name': urduName,
+          'english_name': englishName,
+          'dose_amount': dose,
+          'dose_unit': doseUnit,
+          'medication_type': medicationType,
+        })
+        .eq('id', medicationId);
 
-    await _client.from('medication_schedules').delete().eq('medication_id', medicationId);
+    await _client
+        .from('medication_schedules')
+        .delete()
+        .eq('medication_id', medicationId);
     for (final t in times) {
       await _client.from('medication_schedules').insert({
         'medication_id': medicationId,
@@ -407,17 +416,16 @@ class BackendRepository {
   Future<List<PatientHistoryRecord>> getPatientHistory(String patientId) async {
     final rows = List<Map<String, dynamic>>.from(
       await _client
-        .from('dose_logs')
-        .select('scheduled_for,status')
-        .eq('patient_id', patientId)
-        .order('scheduled_for', ascending: false)
-        .limit(30),
+          .from('dose_logs')
+          .select('scheduled_for,status')
+          .eq('patient_id', patientId)
+          .order('scheduled_for', ascending: false)
+          .limit(30),
     );
 
     return rows.map((row) {
-      final scheduled = DateTime.tryParse(
-            (row['scheduled_for'] ?? '').toString(),
-          ) ??
+      final scheduled =
+          DateTime.tryParse((row['scheduled_for'] ?? '').toString()) ??
           DateTime.now();
       return PatientHistoryRecord(
         dayLabel: _weekdayLabel(scheduled),
@@ -447,9 +455,9 @@ class BackendRepository {
 
     final rows = List<Map<String, dynamic>>.from(
       await _client
-        .from('profiles')
-        .select('id,full_name')
-        .inFilter('id', patientIds),
+          .from('profiles')
+          .select('id,full_name')
+          .inFilter('id', patientIds),
     );
 
     return rows

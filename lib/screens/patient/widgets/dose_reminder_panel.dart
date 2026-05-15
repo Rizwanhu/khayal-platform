@@ -120,12 +120,12 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
             widget.headline,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontFamily: 'KhayalRoboto',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                  height: 1.25,
-                  color: _textPrimary,
-                ),
+              fontFamily: 'KhayalRoboto',
+              fontWeight: FontWeight.w700,
+              fontSize: 22,
+              height: 1.25,
+              color: _textPrimary,
+            ),
           ),
           const SizedBox(height: 22),
           Container(
@@ -144,13 +144,13 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                 Text(
                   AppLanguageState.pick(en: widget.nameEn, ur: widget.nameUr),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontFamily: AppLanguageState.isUrdu
-                            ? 'NotoNastaliqUrdu'
-                            : 'KhayalRoboto',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                        color: _textPrimary,
-                      ),
+                    fontFamily: AppLanguageState.isUrdu
+                        ? 'NotoNastaliqUrdu'
+                        : 'KhayalRoboto',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    color: _textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -164,23 +164,23 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                     Text(
                       widget.time,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontFamily: 'KhayalRoboto',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                            color: _textPrimary,
-                          ),
+                        fontFamily: 'KhayalRoboto',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: _textPrimary,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Text(
                       AppLanguageState.pick(en: '1 dose', ur: widget.doseUr),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontFamily: AppLanguageState.isUrdu
-                                ? 'NotoNastaliqUrdu'
-                                : 'KhayalRoboto',
-                            fontSize: 15,
-                            height: 1.25,
-                            color: _textPrimary,
-                          ),
+                        fontFamily: AppLanguageState.isUrdu
+                            ? 'NotoNastaliqUrdu'
+                            : 'KhayalRoboto',
+                        fontSize: 15,
+                        height: 1.25,
+                        color: _textPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -218,7 +218,8 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                       const SizedBox(width: 10),
                       Text(
                         'I Took It',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               fontFamily: 'KhayalRoboto',
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
@@ -261,11 +262,11 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                   child: Text(
                     'Remind me in 15 min',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: _secondaryText,
-                        ),
+                      fontFamily: 'KhayalRoboto',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: _secondaryText,
+                    ),
                   ),
                 ),
               ),

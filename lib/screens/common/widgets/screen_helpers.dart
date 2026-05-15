@@ -83,15 +83,14 @@ class QuickNavWrap extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children:
-          routes.entries
-              .map(
-                (entry) => ActionChip(
-                  label: Text(entry.key),
-                  onPressed: () => Navigator.pushNamed(context, entry.value),
-                ),
-              )
-              .toList(),
+      children: routes.entries
+          .map(
+            (entry) => ActionChip(
+              label: Text(entry.key),
+              onPressed: () => Navigator.pushNamed(context, entry.value),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -164,7 +163,9 @@ class InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(child: ListTile(title: Text(label), subtitle: Text(value)));
+    return Card(
+      child: ListTile(title: Text(label), subtitle: Text(value)),
+    );
   }
 }
 
