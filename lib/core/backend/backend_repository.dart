@@ -93,8 +93,8 @@ class BackendRepository {
   static const medicationPhotosBucket = 'medication-photos';
 
   Future<String> createPatientLinkCode({required String patientPhone}) async {
-    final code = (100000 + DateTime.now().millisecondsSinceEpoch % 900000)
-        .toString();
+    final code =
+        (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
     final expiresAt = DateTime.now().toUtc().add(const Duration(minutes: 10));
 
     await _client.from('otp_artifacts').insert({
@@ -111,15 +111,16 @@ class BackendRepository {
     required String patientPhone,
     required String code,
   }) async {
-    final artifact = await _client
-        .from('otp_artifacts')
-        .select('id,expires_at,used_at')
-        .eq('patient_phone', patientPhone)
-        .eq('otp_hash', code)
-        .isFilter('used_at', null)
-        .order('created_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
+    final artifact =
+        await _client
+            .from('otp_artifacts')
+            .select('id,expires_at,used_at')
+            .eq('patient_phone', patientPhone)
+            .eq('otp_hash', code)
+            .isFilter('used_at', null)
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
 
     if (artifact == null) return false;
     final expiresAt = DateTime.tryParse(
@@ -129,12 +130,13 @@ class BackendRepository {
       return false;
     }
 
-    final patient = await _client
-        .from('profiles')
-        .select('id,role,phone')
-        .eq('phone', patientPhone)
-        .eq('role', 'patient')
-        .maybeSingle();
+    final patient =
+        await _client
+            .from('profiles')
+            .select('id,role,phone')
+            .eq('phone', patientPhone)
+            .eq('role', 'patient')
+            .maybeSingle();
     if (patient == null) return false;
 
     final patientId = patient['id'].toString();
@@ -182,11 +184,12 @@ class BackendRepository {
   }
 
   Future<PatientProfile?> getPatientProfile(String patientId) async {
-    final data = await _client
-        .from('profiles')
-        .select('id,role,full_name,phone')
-        .eq('id', patientId)
-        .maybeSingle();
+    final data =
+        await _client
+            .from('profiles')
+            .select('id,role,full_name,phone')
+            .eq('id', patientId)
+            .maybeSingle();
 
     if (data == null) return null;
 
@@ -242,11 +245,12 @@ class BackendRepository {
 
     return rows.map((row) {
       final schedules = (row['medication_schedules'] as List<dynamic>? ?? []);
-      final firstTime = schedules.isNotEmpty
-          ? ((schedules.first as Map<String, dynamic>)['local_time']
-                    ?.toString() ??
-                '--:--')
-          : '--:--';
+      final firstTime =
+          schedules.isNotEmpty
+              ? ((schedules.first as Map<String, dynamic>)['local_time']
+                      ?.toString() ??
+                  '--:--')
+              : '--:--';
       final path = row['image_storage_path'];
       return MedicationRecord(
         id: row['id'].toString(),
@@ -271,28 +275,30 @@ class BackendRepository {
     required String timesCsv,
   }) async {
     final dose = double.tryParse(doseAmountRaw.trim()) ?? 1;
-    final inserted = await _client
-        .from('medications')
-        .insert({
-          'patient_id': patientId,
-          'created_by': createdBy,
-          'urdu_name': urduName,
-          'english_name': englishName,
-          'dose_amount': dose,
-          'dose_unit': doseUnit,
-          'medication_type': medicationType,
-        })
-        .select('id')
-        .single();
+    final inserted =
+        await _client
+            .from('medications')
+            .insert({
+              'patient_id': patientId,
+              'created_by': createdBy,
+              'urdu_name': urduName,
+              'english_name': englishName,
+              'dose_amount': dose,
+              'dose_unit': doseUnit,
+              'medication_type': medicationType,
+            })
+            .select('id')
+            .single();
 
     final medId = inserted['id']?.toString();
     if (medId == null) return null;
 
-    final times = timesCsv
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
+    final times =
+        timesCsv
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
 
     for (final t in times) {
       final normalized = _normalizeTime(t);
@@ -351,20 +357,22 @@ class BackendRepository {
   }
 
   Future<MedicationEditRecord?> getMedicationById(String medicationId) async {
-    final data = await _client
-        .from('medications')
-        .select(
-          'id,patient_id,english_name,urdu_name,dose_amount,dose_unit,medication_type,'
-          'image_storage_path,'
-          'medication_schedules(local_time)',
-        )
-        .eq('id', medicationId)
-        .maybeSingle();
+    final data =
+        await _client
+            .from('medications')
+            .select(
+              'id,patient_id,english_name,urdu_name,dose_amount,dose_unit,medication_type,'
+              'image_storage_path,'
+              'medication_schedules(local_time)',
+            )
+            .eq('id', medicationId)
+            .maybeSingle();
 
     if (data == null) return null;
-    final schedules = (data['medication_schedules'] as List<dynamic>? ?? [])
-        .map((e) => (e as Map<String, dynamic>)['local_time'].toString())
-        .toList();
+    final schedules =
+        (data['medication_schedules'] as List<dynamic>? ?? [])
+            .map((e) => (e as Map<String, dynamic>)['local_time'].toString())
+            .toList();
     final img = data['image_storage_path'];
 
     return MedicationEditRecord(

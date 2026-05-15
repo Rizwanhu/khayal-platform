@@ -44,9 +44,8 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
     }
     setState(() => _saving = true);
     try {
-      final normalizedPhone = patientPhone.startsWith('+')
-          ? patientPhone
-          : '+$patientPhone';
+      final normalizedPhone =
+          patientPhone.startsWith('+') ? patientPhone : '+$patientPhone';
       final linked = await Backend.repo.linkCaregiverToPatientViaCode(
         caregiverId: caregiverId,
         patientPhone: normalizedPhone,

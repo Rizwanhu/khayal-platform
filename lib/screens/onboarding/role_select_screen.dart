@@ -39,13 +39,14 @@ class RoleSelectScreen extends StatelessWidget {
                     Text(
                       'Who are you?',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontFamily: 'KhayalRoboto',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 24,
-                            color: _title,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(
+                        fontFamily: 'KhayalRoboto',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 24,
+                        color: _title,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(

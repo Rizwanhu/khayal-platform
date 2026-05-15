@@ -217,18 +217,20 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      textStyle: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(
-                            fontFamily: 'KhayalRoboto',
-                            fontWeight: FontWeight.w800,
-                          ),
+                      textStyle: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(
+                        fontFamily: 'KhayalRoboto',
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    onPressed: _saving
-                        ? null
-                        : () async {
-                            HapticFeedback.mediumImpact();
-                            await _saveMedication(context);
-                          },
+                    onPressed:
+                        _saving
+                            ? null
+                            : () async {
+                              HapticFeedback.mediumImpact();
+                              await _saveMedication(context);
+                            },
                     child: Text(_saving ? 'Saving...' : 'Save Medication'),
                   ),
                 ),
@@ -284,58 +286,59 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
                       child: SizedBox(
                         height: 140,
                         width: double.infinity,
-                        child: _pickedPhotoBytes != null
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  MedicationMemoryPhotoPreview(
-                                    bytes: _pickedPhotoBytes!,
-                                    height: 140,
-                                    borderRadius: 16,
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Material(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: IconButton(
-                                        visualDensity: VisualDensity.compact,
-                                        icon: const Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                          size: 20,
+                        child:
+                            _pickedPhotoBytes != null
+                                ? Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    MedicationMemoryPhotoPreview(
+                                      bytes: _pickedPhotoBytes!,
+                                      height: 140,
+                                      borderRadius: 16,
+                                    ),
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Material(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: IconButton(
+                                          visualDensity: VisualDensity.compact,
+                                          icon: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _pickedPhotoBytes = null;
+                                              _pickedPhotoMime = null;
+                                            });
+                                          },
                                         ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _pickedPhotoBytes = null;
-                                            _pickedPhotoMime = null;
-                                          });
-                                        },
                                       ),
                                     ),
-                                  ),
-                                ],
-                              )
-                            : const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.photo_camera_outlined,
-                                    size: 40,
-                                    color: CaregiverColors.textMuted,
-                                  ),
-                                  SizedBox(height: 10),
-                                  Text(
-                                    'Upload Photo',
-                                    style: TextStyle(
-                                      fontFamily: 'KhayalRoboto',
-                                      fontWeight: FontWeight.w600,
+                                  ],
+                                )
+                                : const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.photo_camera_outlined,
+                                      size: 40,
                                       color: CaregiverColors.textMuted,
                                     ),
-                                  ),
-                                ],
-                              ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Upload Photo',
+                                      style: TextStyle(
+                                        fontFamily: 'KhayalRoboto',
+                                        fontWeight: FontWeight.w600,
+                                        color: CaregiverColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                       ),
                     ),
                   ),
@@ -367,17 +370,18 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
             fontSize: 16,
             color: CaregiverColors.textPrimary,
           ),
-          items: items
-              .map(
-                (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(
-                    e,
-                    style: const TextStyle(fontFamily: 'KhayalRoboto'),
-                  ),
-                ),
-              )
-              .toList(),
+          items:
+              items
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(
+                        e,
+                        style: const TextStyle(fontFamily: 'KhayalRoboto'),
+                      ),
+                    ),
+                  )
+                  .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -501,10 +505,11 @@ class _DashedRectPainter extends CustomPainter {
       Radius.circular(radius),
     );
     final path = Path()..addRRect(r);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8;
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8;
     for (final metric in path.computeMetrics()) {
       double d = 0;
       while (d < metric.length) {

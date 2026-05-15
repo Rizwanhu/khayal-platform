@@ -56,31 +56,35 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
     return ScreenTemplate(
       title: 'Doctor Patient List',
       subtitle: 'Assigned patients from Supabase',
-      child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Text(_error!)
-          : Column(
-              children: _patients
-                  .map(
-                    (p) => Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(child: Icon(Icons.person)),
-                        title: Text(p.patientName),
-                        subtitle: Text(p.subtitle),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          AppSession.selectedPatientId = p.patientId;
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.doctorPatientHistory,
-                          );
-                        },
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
+      child:
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+              ? Text(_error!)
+              : Column(
+                children:
+                    _patients
+                        .map(
+                          (p) => Card(
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                child: Icon(Icons.person),
+                              ),
+                              title: Text(p.patientName),
+                              subtitle: Text(p.subtitle),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                AppSession.selectedPatientId = p.patientId;
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.doctorPatientHistory,
+                                );
+                              },
+                            ),
+                          ),
+                        )
+                        .toList(),
+              ),
     );
   }
 }

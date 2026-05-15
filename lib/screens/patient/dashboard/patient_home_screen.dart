@@ -167,24 +167,25 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       if (!mounted) return;
       await showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Caregiver Link Code'),
-          content: Text(
-            code,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 4,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Caregiver Link Code'),
+              content: Text(
+                code,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -211,12 +212,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
               _DashboardHeader(
                 topPadding: topInset,
                 dateLabel: _formatHeaderDate(today),
-                onNotifications: () =>
-                    Navigator.pushNamed(context, AppRoutes.notificationOverlay),
-                onSettings: () =>
-                    Navigator.pushNamed(context, AppRoutes.settings),
-                onHistory: () =>
-                    Navigator.pushNamed(context, AppRoutes.patientHistory),
+                onNotifications:
+                    () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.notificationOverlay,
+                    ),
+                onSettings:
+                    () => Navigator.pushNamed(context, AppRoutes.settings),
+                onHistory:
+                    () =>
+                        Navigator.pushNamed(context, AppRoutes.patientHistory),
                 onGenerateCode: _generatePatientLinkCode,
               ),
               Expanded(
@@ -263,16 +268,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                 curve: const Interval(0, 0.65, curve: Curves.easeOut),
               ),
               child: SlideTransition(
-                position:
-                    Tween<Offset>(
-                      begin: const Offset(0, 1.15),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: _summaryController,
-                        curve: Curves.easeOutCubic,
-                      ),
-                    ),
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1.15),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: _summaryController,
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
                 child: _FloatingSummaryBar(
                   taken: _count(_MedStatus.taken),
                   missed: _count(_MedStatus.missed),
@@ -441,15 +445,14 @@ class _MedicineCardState extends State<_MedicineCard> {
                                       en: item.nameEn,
                                       ur: item.nameUr,
                                     ),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontFamily: 'KhayalRoboto',
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 17,
-                                          color: const Color(0xFF1C1C1C),
-                                        ),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium?.copyWith(
+                                      fontFamily: 'KhayalRoboto',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 17,
+                                      color: const Color(0xFF1C1C1C),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -469,13 +472,14 @@ class _MedicineCardState extends State<_MedicineCard> {
                             const SizedBox(width: 6),
                             Text(
                               item.time,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontFamily: 'KhayalRoboto',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: const Color(0xFF5C5C5C),
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                fontFamily: 'KhayalRoboto',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: const Color(0xFF5C5C5C),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -483,15 +487,17 @@ class _MedicineCardState extends State<_MedicineCard> {
                                 en: item.doseEn,
                                 ur: item.doseUr,
                               ),
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontFamily: AppLanguageState.isUrdu
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                fontFamily:
+                                    AppLanguageState.isUrdu
                                         ? 'NotoNastaliqUrdu'
                                         : 'KhayalRoboto',
-                                    fontSize: 15,
-                                    height: 1.3,
-                                    color: const Color(0xFF5C5C5C),
-                                  ),
+                                fontSize: 15,
+                                height: 1.3,
+                                color: const Color(0xFF5C5C5C),
+                              ),
                             ),
                           ],
                         ),

@@ -93,23 +93,25 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen>
                       children: [
                         Text(
                           'پیراسیٹامول',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontFamily: 'NotoNastaliqUrdu',
-                                fontSize: 28,
-                                height: 1.25,
-                                color: Colors.white,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineSmall?.copyWith(
+                            fontFamily: 'NotoNastaliqUrdu',
+                            fontSize: 28,
+                            height: 1.25,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Paracetamol',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontFamily: 'KhayalRoboto',
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.92),
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.92),
+                          ),
                         ),
                       ],
                     ),
@@ -224,9 +226,10 @@ class _DetailTileState extends State<_DetailTile> {
                       widget.value,
                       textAlign: TextAlign.right,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontFamily: widget.valueIsUrdu
-                            ? 'NotoNastaliqUrdu'
-                            : 'KhayalRoboto',
+                        fontFamily:
+                            widget.valueIsUrdu
+                                ? 'NotoNastaliqUrdu'
+                                : 'KhayalRoboto',
                         fontWeight: FontWeight.w600,
                         fontSize: widget.valueIsUrdu ? 17 : 15,
                         height: widget.valueIsUrdu ? 1.4 : 1.25,

@@ -53,8 +53,11 @@ class _MedicationSignedThumbState extends State<MedicationSignedThumb> {
             return Image.network(
               u,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  Icon(Icons.broken_image_outlined, size: widget.size * 0.45),
+              errorBuilder:
+                  (_, __, ___) => Icon(
+                    Icons.broken_image_outlined,
+                    size: widget.size * 0.45,
+                  ),
             );
           },
         ),

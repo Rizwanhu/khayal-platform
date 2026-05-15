@@ -83,14 +83,15 @@ class QuickNavWrap extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: routes.entries
-          .map(
-            (entry) => ActionChip(
-              label: Text(entry.key),
-              onPressed: () => Navigator.pushNamed(context, entry.value),
-            ),
-          )
-          .toList(),
+      children:
+          routes.entries
+              .map(
+                (entry) => ActionChip(
+                  label: Text(entry.key),
+                  onPressed: () => Navigator.pushNamed(context, entry.value),
+                ),
+              )
+              .toList(),
     );
   }
 }
@@ -124,9 +125,10 @@ class MedicationCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                fontFamily: AppLanguageState.isUrdu
-                    ? 'NotoNastaliqUrdu'
-                    : 'KhayalRoboto',
+                fontFamily:
+                    AppLanguageState.isUrdu
+                        ? 'NotoNastaliqUrdu'
+                        : 'KhayalRoboto',
                 height: 1.7,
               ),
             ),
@@ -163,9 +165,7 @@ class InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(title: Text(label), subtitle: Text(value)),
-    );
+    return Card(child: ListTile(title: Text(label), subtitle: Text(value)));
   }
 }
 

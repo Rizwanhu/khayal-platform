@@ -62,13 +62,12 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
     );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.07), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.07),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
     _entranceController.forward();
 
     _pulseController = AnimationController(
@@ -419,8 +418,8 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
                                           borderFocus: _cellBorderFocus,
                                           pulse: _pulseAnimation.value,
                                           isFocused: _digitFocus[i].hasFocus,
-                                          onChanged: (v) =>
-                                              _onDigitChanged(i, v),
+                                          onChanged:
+                                              (v) => _onDigitChanged(i, v),
                                         ),
                                       ),
                                     ),
@@ -431,20 +430,23 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
                                     child: _LinkAccountButton(
                                       scale: _buttonScale,
                                       enabled: _isComplete,
-                                      label: _verifyingOtp
-                                          ? 'Verifying...'
-                                          : _otpSent
-                                          ? 'Verify & Continue'
-                                          : 'Send OTP',
+                                      label:
+                                          _verifyingOtp
+                                              ? 'Verifying...'
+                                              : _otpSent
+                                              ? 'Verify & Continue'
+                                              : 'Send OTP',
                                       mutedColor: _ctaMuted,
                                       readyColor: _ctaReady,
                                       onTap: _verifyOtpAndContinue,
-                                      onTapDown: () => setState(() {
-                                        _buttonScale = 0.96;
-                                      }),
-                                      onTapEnd: () => setState(() {
-                                        _buttonScale = 1;
-                                      }),
+                                      onTapDown:
+                                          () => setState(() {
+                                            _buttonScale = 0.96;
+                                          }),
+                                      onTapEnd:
+                                          () => setState(() {
+                                            _buttonScale = 1;
+                                          }),
                                     ),
                                   ),
                                 ],
@@ -492,11 +494,12 @@ class _OtpCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Color.lerp(
-      borderIdle,
-      borderFocus,
-      isFocused ? pulse * 0.35 + 0.65 : 0,
-    )!;
+    final borderColor =
+        Color.lerp(
+          borderIdle,
+          borderFocus,
+          isFocused ? pulse * 0.35 + 0.65 : 0,
+        )!;
     final borderWidth = isFocused ? 1.8 + pulse * 0.4 : 1.0;
 
     return AnimatedContainer(
@@ -508,15 +511,16 @@ class _OtpCell extends StatelessWidget {
         color: fill,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: borderWidth),
-        boxShadow: isFocused
-            ? [
-                BoxShadow(
-                  color: borderFocus.withValues(alpha: 0.22 * pulse),
-                  blurRadius: 8 + 6 * pulse,
-                  spreadRadius: 0.5 * pulse,
-                ),
-              ]
-            : null,
+        boxShadow:
+            isFocused
+                ? [
+                  BoxShadow(
+                    color: borderFocus.withValues(alpha: 0.22 * pulse),
+                    blurRadius: 8 + 6 * pulse,
+                    spreadRadius: 0.5 * pulse,
+                  ),
+                ]
+                : null,
       ),
       child: Center(
         child: TextField(

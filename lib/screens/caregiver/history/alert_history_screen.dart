@@ -175,12 +175,10 @@ class _AlertCardState extends State<_AlertCard> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final isRed = item.tone == _AlertTone.escalated;
-    final accent = isRed
-        ? CaregiverColors.alertRed
-        : CaregiverColors.alertOrange;
-    final soft = isRed
-        ? CaregiverColors.missedSoft
-        : CaregiverColors.upcomingSoft;
+    final accent =
+        isRed ? CaregiverColors.alertRed : CaregiverColors.alertOrange;
+    final soft =
+        isRed ? CaregiverColors.missedSoft : CaregiverColors.upcomingSoft;
 
     return Listener(
       onPointerDown: (_) => setState(() => _scale = 0.99),
@@ -236,30 +234,26 @@ class _AlertCardState extends State<_AlertCard> {
                                       children: [
                                         Text(
                                           item.titleEn,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleSmall
-                                              ?.copyWith(
-                                                fontFamily: 'KhayalRoboto',
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 16,
-                                                color:
-                                                    CaregiverColors.textPrimary,
-                                              ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleSmall?.copyWith(
+                                            fontFamily: 'KhayalRoboto',
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 16,
+                                            color: CaregiverColors.textPrimary,
+                                          ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           item.titleUr,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                fontFamily: 'NotoNastaliqUrdu',
-                                                fontSize: 15,
-                                                height: 1.35,
-                                                color:
-                                                    CaregiverColors.textPrimary,
-                                              ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: 'NotoNastaliqUrdu',
+                                            fontSize: 15,
+                                            height: 1.35,
+                                            color: CaregiverColors.textPrimary,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -278,15 +272,14 @@ class _AlertCardState extends State<_AlertCard> {
                                       ),
                                       child: Text(
                                         'Escalated',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              fontFamily: 'KhayalRoboto',
-                                              fontWeight: FontWeight.w800,
-                                              color: CaregiverColors.alertRed,
-                                              fontSize: 10,
-                                            ),
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.labelSmall?.copyWith(
+                                          fontFamily: 'KhayalRoboto',
+                                          fontWeight: FontWeight.w800,
+                                          color: CaregiverColors.alertRed,
+                                          fontSize: 10,
+                                        ),
                                       ),
                                     ),
                                 ],
@@ -306,12 +299,13 @@ class _AlertCardState extends State<_AlertCard> {
                               const SizedBox(height: 6),
                               Text(
                                 item.dateLine,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontFamily: 'KhayalRoboto',
-                                      color: CaregiverColors.textMuted,
-                                      fontSize: 13,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  color: CaregiverColors.textMuted,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),

@@ -144,9 +144,10 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                 Text(
                   AppLanguageState.pick(en: widget.nameEn, ur: widget.nameUr),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontFamily: AppLanguageState.isUrdu
-                        ? 'NotoNastaliqUrdu'
-                        : 'KhayalRoboto',
+                    fontFamily:
+                        AppLanguageState.isUrdu
+                            ? 'NotoNastaliqUrdu'
+                            : 'KhayalRoboto',
                     fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: _textPrimary,
@@ -174,9 +175,10 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                     Text(
                       AppLanguageState.pick(en: '1 dose', ur: widget.doseUr),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontFamily: AppLanguageState.isUrdu
-                            ? 'NotoNastaliqUrdu'
-                            : 'KhayalRoboto',
+                        fontFamily:
+                            AppLanguageState.isUrdu
+                                ? 'NotoNastaliqUrdu'
+                                : 'KhayalRoboto',
                         fontSize: 15,
                         height: 1.25,
                         color: _textPrimary,
@@ -218,13 +220,14 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
                       const SizedBox(width: 10),
                       Text(
                         'I Took It',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontFamily: 'KhayalRoboto',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(
+                          fontFamily: 'KhayalRoboto',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),

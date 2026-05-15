@@ -106,9 +106,10 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
         _existingImagePath = med.imageStoragePath;
         _newPhotoBytes = null;
         _newPhotoMime = null;
-        _type = _types.contains(_capitalize(med.doseUnit))
-            ? _capitalize(med.doseUnit)
-            : _type;
+        _type =
+            _types.contains(_capitalize(med.doseUnit))
+                ? _capitalize(med.doseUnit)
+                : _type;
         final normalizedType = _capitalize(med.medicationType);
         if (_types.contains(normalizedType)) _type = normalizedType;
         _times
@@ -185,17 +186,18 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
             fontSize: 16,
             color: CaregiverColors.textPrimary,
           ),
-          items: items
-              .map(
-                (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(
-                    e,
-                    style: const TextStyle(fontFamily: 'KhayalRoboto'),
-                  ),
-                ),
-              )
-              .toList(),
+          items:
+              items
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(
+                        e,
+                        style: const TextStyle(fontFamily: 'KhayalRoboto'),
+                      ),
+                    ),
+                  )
+                  .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -300,8 +302,8 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
                     label: 'Frequency',
                     value: _frequency,
                     items: _frequencies,
-                    onChanged: (v) =>
-                        setState(() => _frequency = v ?? _frequency),
+                    onChanged:
+                        (v) => setState(() => _frequency = v ?? _frequency),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -446,93 +448,93 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
                           child: SizedBox(
                             height: 120,
                             width: double.infinity,
-                            child: _newPhotoBytes != null
-                                ? Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      MedicationMemoryPhotoPreview(
-                                        bytes: _newPhotoBytes!,
-                                        height: 120,
-                                        borderRadius: 16,
-                                      ),
-                                      Positioned(
-                                        top: 6,
-                                        right: 6,
-                                        child: Material(
-                                          color: Colors.black54,
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          child: IconButton(
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            icon: const Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                              size: 18,
+                            child:
+                                _newPhotoBytes != null
+                                    ? Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        MedicationMemoryPhotoPreview(
+                                          bytes: _newPhotoBytes!,
+                                          height: 120,
+                                          borderRadius: 16,
+                                        ),
+                                        Positioned(
+                                          top: 6,
+                                          right: 6,
+                                          child: Material(
+                                            color: Colors.black54,
+                                            borderRadius: BorderRadius.circular(
+                                              20,
                                             ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _newPhotoBytes = null;
-                                                _newPhotoMime = null;
-                                              });
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : _existingImagePath != null &&
-                                      _existingImagePath!.isNotEmpty
-                                ? Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(8),
-                                        child: Center(
-                                          child: MedicationSignedThumb(
-                                            storagePath: _existingImagePath!,
-                                            size: 96,
-                                            borderRadius: 12,
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        bottom: 6,
-                                        right: 6,
-                                        child: Text(
-                                          'Tap to replace',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                fontFamily: 'KhayalRoboto',
-                                                color:
-                                                    CaregiverColors.textMuted,
+                                            child: IconButton(
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              icon: const Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                                size: 18,
                                               ),
+                                              onPressed: () {
+                                                setState(() {
+                                                  _newPhotoBytes = null;
+                                                  _newPhotoMime = null;
+                                                });
+                                              },
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  )
-                                : const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.photo_camera_outlined,
-                                        size: 36,
-                                        color: CaregiverColors.textMuted,
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Upload Photo',
-                                        style: TextStyle(
-                                          fontFamily: 'KhayalRoboto',
-                                          fontWeight: FontWeight.w600,
+                                      ],
+                                    )
+                                    : _existingImagePath != null &&
+                                        _existingImagePath!.isNotEmpty
+                                    ? Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Center(
+                                            child: MedicationSignedThumb(
+                                              storagePath: _existingImagePath!,
+                                              size: 96,
+                                              borderRadius: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          bottom: 6,
+                                          right: 6,
+                                          child: Text(
+                                            'Tap to replace',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.labelSmall?.copyWith(
+                                              fontFamily: 'KhayalRoboto',
+                                              color: CaregiverColors.textMuted,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                    : const Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.photo_camera_outlined,
+                                          size: 36,
                                           color: CaregiverColors.textMuted,
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          'Upload Photo',
+                                          style: TextStyle(
+                                            fontFamily: 'KhayalRoboto',
+                                            fontWeight: FontWeight.w600,
+                                            color: CaregiverColors.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                           ),
                         ),
                       ),
@@ -569,18 +571,20 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          textStyle: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontFamily: 'KhayalRoboto',
-                                fontWeight: FontWeight.w800,
-                              ),
+                          textStyle: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            fontFamily: 'KhayalRoboto',
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                        onPressed: _saving
-                            ? null
-                            : () async {
-                                HapticFeedback.mediumImpact();
-                                await _saveMedication(context);
-                              },
+                        onPressed:
+                            _saving
+                                ? null
+                                : () async {
+                                  HapticFeedback.mediumImpact();
+                                  await _saveMedication(context);
+                                },
                         child: Text(_saving ? 'Saving...' : 'Save Medication'),
                       ),
                     ),
@@ -616,12 +620,13 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
         doseAmountRaw: _dose.text.trim(),
         doseUnit: _type,
         medicationType: _type.toLowerCase(),
-        times: _times
-            .map(
-              (t) =>
-                  '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
-            )
-            .toList(),
+        times:
+            _times
+                .map(
+                  (t) =>
+                      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                )
+                .toList(),
       );
       final pid = _patientId;
       if (pid != null &&
@@ -688,10 +693,11 @@ class _DashedRectPainter extends CustomPainter {
       Radius.circular(radius),
     );
     final path = Path()..addRRect(r);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8;
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8;
     for (final metric in path.computeMetrics()) {
       double d = 0;
       while (d < metric.length) {

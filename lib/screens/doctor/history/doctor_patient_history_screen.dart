@@ -53,22 +53,23 @@ class _DoctorPatientHistoryScreenState
     return ScreenTemplate(
       title: 'Doctor Patient History',
       subtitle: 'Read-only adherence and dose history (live)',
-      child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Text(_error!)
-          : Column(
-              children: [
-                InfoTile(
-                  label: 'Patient ID',
-                  value: AppSession.selectedPatientId ?? '-',
-                ),
-                const SizedBox(height: 10),
-                ..._rows.map(
-                  (r) => HistoryRow(day: r.dayLabel, status: r.status),
-                ),
-              ],
-            ),
+      child:
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+              ? Text(_error!)
+              : Column(
+                children: [
+                  InfoTile(
+                    label: 'Patient ID',
+                    value: AppSession.selectedPatientId ?? '-',
+                  ),
+                  const SizedBox(height: 10),
+                  ..._rows.map(
+                    (r) => HistoryRow(day: r.dayLabel, status: r.status),
+                  ),
+                ],
+              ),
     );
   }
 }

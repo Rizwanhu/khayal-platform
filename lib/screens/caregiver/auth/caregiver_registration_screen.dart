@@ -53,9 +53,10 @@ class _CaregiverRegistrationScreenState
         userId: userId,
         role: 'caregiver',
         fullName: name,
-        phone: _phoneController.text.trim().isEmpty
-            ? null
-            : _phoneController.text.trim(),
+        phone:
+            _phoneController.text.trim().isEmpty
+                ? null
+                : _phoneController.text.trim(),
       );
       if (!mounted) return;
       Navigator.pushNamed(context, AppRoutes.patientProfileSetup);

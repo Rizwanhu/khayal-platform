@@ -42,10 +42,12 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
       parent: _cardController,
       curve: const Interval(0.1, 1, curve: Curves.easeOutCubic),
     );
-    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.18), end: Offset.zero)
-        .animate(
-          CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic),
-        );
+    _cardSlide = Tween<Offset>(
+      begin: const Offset(0, 0.18),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic),
+    );
 
     _scrimController.forward();
     Future<void>.delayed(const Duration(milliseconds: 60), () {

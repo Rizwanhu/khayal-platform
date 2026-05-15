@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
-
 
 /// Caregiver overview: status, adherence chart, medications, FAB.
 class CaregiverDashboardScreen extends StatefulWidget {
@@ -200,13 +198,14 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                   children: [
                     Text(
                       'Dashboard',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontFamily: 'KhayalRoboto',
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 26,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(
+                        fontFamily: 'KhayalRoboto',
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 26,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -460,12 +459,13 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                           const SizedBox(height: 8),
                           Text(
                             days[i],
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  fontFamily: 'KhayalRoboto',
-                                  color: CaregiverColors.textMuted,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
+                              fontFamily: 'KhayalRoboto',
+                              color: CaregiverColors.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -602,11 +602,12 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     ur: med.nameUr,
                     dose: med.doseLabel,
                     times: med.timeLabel,
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.editMedication,
-                      arguments: med.id,
-                    ),
+                    onTap:
+                        () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.editMedication,
+                          arguments: med.id,
+                        ),
                   ),
                 );
               }),
@@ -660,9 +661,10 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                     Text(
                       AppLanguageState.pick(en: en, ur: ur),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontFamily: AppLanguageState.isUrdu
-                            ? 'NotoNastaliqUrdu'
-                            : 'KhayalRoboto',
+                        fontFamily:
+                            AppLanguageState.isUrdu
+                                ? 'NotoNastaliqUrdu'
+                                : 'KhayalRoboto',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                         color: CaregiverColors.textPrimary,
@@ -723,9 +725,10 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
 class _DottedLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = CaregiverColors.fieldBorder.withValues(alpha: 0.6)
-      ..strokeWidth = 1;
+    final paint =
+        Paint()
+          ..color = CaregiverColors.fieldBorder.withValues(alpha: 0.6)
+          ..strokeWidth = 1;
     const dash = 4.0;
     const gap = 4.0;
     double x = 0;

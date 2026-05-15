@@ -73,13 +73,12 @@ class _DoseTakenSuccessScreenState extends State<DoseTakenSuccessScreen>
       parent: _contentController,
       curve: Curves.easeOutCubic,
     );
-    _contentSlide =
-        Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _contentController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
+    _contentSlide = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _contentController, curve: Curves.easeOutCubic),
+    );
 
     _heroController.forward();
     Future<void>.delayed(const Duration(milliseconds: 200), () {
@@ -195,25 +194,27 @@ class _DoseTakenSuccessScreenState extends State<DoseTakenSuccessScreen>
                               Text(
                                 'Well Done!',
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(
-                                      fontFamily: 'KhayalRoboto',
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 28,
-                                      color: _title,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 28,
+                                  color: _title,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               Text(
                                 'You took your medicine on time. Great job!',
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(
-                                      fontFamily: 'KhayalRoboto',
-                                      fontSize: 16,
-                                      height: 1.45,
-                                      color: _subtitle,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  fontSize: 16,
+                                  height: 1.45,
+                                  color: _subtitle,
+                                ),
                               ),
                               const SizedBox(height: 28),
                               Container(
@@ -230,14 +231,15 @@ class _DoseTakenSuccessScreenState extends State<DoseTakenSuccessScreen>
                                 child: Text(
                                   "You've taken ${widget.takenCount} out of ${widget.totalCount} medicines today.",
                                   textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        fontFamily: 'KhayalRoboto',
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                        height: 1.4,
-                                        color: _cardText,
-                                      ),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium?.copyWith(
+                                    fontFamily: 'KhayalRoboto',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                    height: 1.4,
+                                    color: _cardText,
+                                  ),
                                 ),
                               ),
                             ],
@@ -273,12 +275,13 @@ class _DoseTakenSuccessScreenState extends State<DoseTakenSuccessScreen>
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            textStyle: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  fontFamily: 'KhayalRoboto',
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
+                            textStyle: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              fontFamily: 'KhayalRoboto',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
                           ),
                           onPressed: () {
                             HapticFeedback.lightImpact();
