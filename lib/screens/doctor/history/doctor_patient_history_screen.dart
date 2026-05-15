@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
-import '../../../core/backend/backend_repository.dart';
+
 import '../../common/widgets/screen_helpers.dart';
 
 class DoctorPatientHistoryScreen extends StatefulWidget {
