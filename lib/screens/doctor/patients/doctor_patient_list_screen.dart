@@ -39,11 +39,13 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
     }
     try {
       final rows = await Backend.repo.getDoctorPatients(doctorId);
+      if (!mounted) return;
       setState(() {
         _patients = rows;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
         _error = 'Failed to load patients: $e';

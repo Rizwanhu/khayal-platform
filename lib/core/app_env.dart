@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'backend/app_session.dart';
@@ -13,7 +14,7 @@ abstract final class AppEnv {
   /// signs in with [bypassEmailPasswordForRole] using any 6 digits as the "code".
   /// Remove or set `false` before any public release.
   static bool get devOtpBypass =>
-      (dotenv.env['DEV_OTP_BYPASS'] ?? '').toLowerCase() == 'true';
+      kDebugMode && (dotenv.env['DEV_OTP_BYPASS'] ?? '').toLowerCase() == 'true';
 
   /// Returns `(email, password)` for [role] when [devOtpBypass] is enabled and env is set.
   static (String email, String password)? bypassEmailPasswordForRole(

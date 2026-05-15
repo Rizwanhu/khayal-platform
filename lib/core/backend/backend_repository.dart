@@ -162,15 +162,20 @@ class BackendRepository {
     required String role,
     required String fullName,
     String? phone,
+    String? relationship,
     String languageCode = 'en',
   }) async {
-    await _client.from('profiles').upsert({
+    final payload = {
       'id': userId,
       'role': role,
       'full_name': fullName,
       'phone': phone,
       'language_code': languageCode,
-    });
+    };
+    if (relationship != null && relationship.isNotEmpty) {
+      payload['relationship'] = relationship;
+    }
+    await _client.from('profiles').upsert(payload);
   }
 
   Future<void> updateProfileName({
@@ -272,6 +277,7 @@ class BackendRepository {
     required String doseAmountRaw,
     required String doseUnit,
     required String medicationType,
+    required String frequency,
     required String timesCsv,
   }) async {
     final dose = double.tryParse(doseAmountRaw.trim()) ?? 1;
@@ -286,6 +292,7 @@ class BackendRepository {
               'dose_amount': dose,
               'dose_unit': doseUnit,
               'medication_type': medicationType,
+              'frequency': frequency,
             })
             .select('id')
             .single();

@@ -102,6 +102,16 @@ using (
       and cpl.status = 'active'
       and cpl.patient_id = split_part(name, '/', 1)::uuid
   )
+)
+with check (
+  bucket_id = 'medication-photos'
+  and exists (
+    select 1
+    from public.caregiver_patient_links cpl
+    where cpl.caregiver_id = auth.uid()
+      and cpl.status = 'active'
+      and cpl.patient_id = split_part(name, '/', 1)::uuid
+  )
 );
 
 create policy "med_photos_delete_caregiver"

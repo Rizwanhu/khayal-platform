@@ -57,6 +57,7 @@ class _CaregiverRegistrationScreenState
             _phoneController.text.trim().isEmpty
                 ? null
                 : _phoneController.text.trim(),
+        relationship: _relationshipController.text.trim(),
       );
       if (!mounted) return;
       Navigator.pushNamed(context, AppRoutes.patientProfileSetup);

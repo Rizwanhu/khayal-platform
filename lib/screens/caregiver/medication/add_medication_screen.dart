@@ -436,6 +436,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
 
     setState(() => _saving = true);
     try {
+      final mappedType = _type == 'Liquid' ? 'syrup' : _type.toLowerCase();
       final medId = await Backend.repo.createMedication(
         patientId: patientId,
         createdBy: caregiverId,
@@ -443,7 +444,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
         englishName: _english.text.trim(),
         doseAmountRaw: _dose.text.trim().split(' ').first,
         doseUnit: _type,
-        medicationType: _type.toLowerCase(),
+        medicationType: mappedType,
+        frequency: _frequency,
         timesCsv: _times.text.trim(),
       );
       if (medId != null &&

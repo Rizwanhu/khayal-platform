@@ -38,11 +38,13 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
     }
     try {
       final data = await Backend.repo.getPatientHistory(patientId);
+      if (!mounted) return;
       setState(() {
         _rows = data;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
         _error = 'Failed to load history: $e';

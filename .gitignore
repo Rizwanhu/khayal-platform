@@ -122,3 +122,4 @@ app.*.symbols
 .env.local
 # Allow the committed template:
 !.env.example
+".idea/" 

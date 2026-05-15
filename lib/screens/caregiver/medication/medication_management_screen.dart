@@ -79,6 +79,7 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
       final patientId = await Backend.repo.getFirstPatientForCaregiver(
         caregiverId,
       );
+      if (!mounted) return;
       if (patientId == null) {
         setState(() {
           _loading = false;
@@ -89,6 +90,7 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
       AppSession.selectedPatientId = patientId;
 
       final meds = await Backend.repo.getMedicationsForPatient(patientId);
+      if (!mounted) return;
       setState(() {
         _items =
             meds
@@ -107,6 +109,7 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
         _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
         _error = 'Failed to load medications: $e';

@@ -15,18 +15,12 @@ class PatientProfileSetupScreen extends StatefulWidget {
 class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
   final _patientPhoneController = TextEditingController();
   final _linkCodeController = TextEditingController();
-  final _patientNameUrController = TextEditingController();
-  final _patientNameEnController = TextEditingController();
-  final _ageController = TextEditingController();
   bool _saving = false;
 
   @override
   void dispose() {
     _patientPhoneController.dispose();
     _linkCodeController.dispose();
-    _patientNameUrController.dispose();
-    _patientNameEnController.dispose();
-    _ageController.dispose();
     super.dispose();
   }
 
@@ -92,25 +86,6 @@ class _PatientProfileSetupScreenState extends State<PatientProfileSetupScreen> {
               decoration: const InputDecoration(
                 labelText: '6-digit OTP code from patient',
               ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _patientNameUrController,
-              decoration: const InputDecoration(
-                labelText: 'Patient Name (Urdu)',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _patientNameEnController,
-              decoration: const InputDecoration(
-                labelText: 'Patient Name (English)',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _ageController,
-              decoration: const InputDecoration(labelText: 'Age'),
             ),
             const SizedBox(height: 20),
             SizedBox(
