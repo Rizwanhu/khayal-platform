@@ -74,6 +74,19 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
 
   void _onTookIt() {
     HapticFeedback.mediumImpact();
+    // Caregiver test / preview must not enter the patient dose-success flow.
+    if (AppSession.currentRole == AppRole.caregiver) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Test alert preview — the patient confirms doses on their device.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _close();
+      return;
+    }
     Navigator.pushReplacementNamed(context, AppRoutes.doseTakenSuccess);
   }
 

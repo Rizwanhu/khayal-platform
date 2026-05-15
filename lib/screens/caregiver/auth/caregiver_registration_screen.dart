@@ -82,7 +82,6 @@ class _CaregiverRegistrationScreenState
             _phoneController.text.trim().isEmpty
                 ? null
                 : _phoneController.text.trim(),
-        relationship: _relationshipController.text.trim(),
       );
       if (!mounted) return;
       final patientId = await Backend.repo.getFirstPatientForCaregiver(userId);

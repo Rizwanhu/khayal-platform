@@ -440,7 +440,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
         doseAmountRaw: _dose.text.trim().split(' ').first,
         doseUnit: _type,
         medicationType: mappedType,
-        frequency: _frequency,
         timesCsv: _times.text.trim(),
       );
       if (medId != null &&
