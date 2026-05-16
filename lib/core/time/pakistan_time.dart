@@ -31,6 +31,23 @@ class PakistanTime {
     return DateTime.utc(pkt.year, pkt.month, pkt.day, h, m).subtract(_pktOffset);
   }
 
+  /// PKT wall-clock from a UTC instant (e.g. Supabase `scheduled_for`).
+  static DateTime pktFromUtc(DateTime utc) => utc.toUtc().add(_pktOffset);
+
+  /// Normalized `HH:mm:ss` for comparing schedule slots to dose logs.
+  static String normalizeScheduleRaw(String raw) {
+    final min = parseScheduleToMinutes(raw);
+    if (min == null) return raw.trim();
+    final h = min ~/ 60;
+    final m = min % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:00';
+  }
+
+  static String scheduleRawFromUtc(DateTime scheduledForUtc) {
+    final pkt = pktFromUtc(scheduledForUtc);
+    return '${pkt.hour.toString().padLeft(2, '0')}:${pkt.minute.toString().padLeft(2, '0')}:00';
+  }
+
   /// Parses `HH:mm` or `HH:mm:ss` schedule strings to minutes since midnight.
   static int? parseScheduleToMinutes(String? raw) {
     if (raw == null || raw.isEmpty || raw == '--:--') return null;

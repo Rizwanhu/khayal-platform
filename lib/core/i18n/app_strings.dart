@@ -33,7 +33,7 @@ abstract final class AppStrings {
   static String get history => _t('History', 'تاریخ');
   static String get alerts => _t('Alerts', 'الرٹس');
 
-  static String get taken => _t('Taken', 'لی لی');
+  static String get taken => _t('Taken', 'لے لی');
   static String get missed => _t('Missed', 'چھوٹ گئی');
   static String get upcoming => _t('Upcoming', 'آنے والی');
   static String get dueNow => _t('Due now', 'اب لیں');

@@ -392,6 +392,49 @@ class BackendRepository {
         .eq('id', userId);
   }
 
+  /// Patient home point for nearby care map (requires `profiles.home_lat` columns).
+  Future<({double lat, double lng, String? areaLabel})?> getPatientHomeLocation(
+    String userId,
+  ) async {
+    try {
+      final data = await _client
+          .from('profiles')
+          .select('home_lat,home_lng,home_area_label')
+          .eq('id', userId)
+          .maybeSingle();
+      if (data == null) return null;
+      final lat = data['home_lat'];
+      final lng = data['home_lng'];
+      if (lat == null || lng == null) return null;
+      return (
+        lat: (lat as num).toDouble(),
+        lng: (lng as num).toDouble(),
+        areaLabel: data['home_area_label']?.toString(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> updatePatientHomeLocation({
+    required String userId,
+    required double latitude,
+    required double longitude,
+    String? areaLabel,
+  }) async {
+    try {
+      await _client.from('profiles').update({
+        'home_lat': latitude,
+        'home_lng': longitude,
+        'home_area_label': areaLabel?.trim().isEmpty == true
+            ? null
+            : areaLabel?.trim(),
+      }).eq('id', userId);
+    } catch (_) {
+      // Columns may not exist until SQL migration is applied; local store still works.
+    }
+  }
+
   Future<PatientProfile?> getPatientProfile(String patientId) async {
     final data = await _client
         .from('profiles')
@@ -713,6 +756,33 @@ class BackendRepository {
         scheduledFor: scheduled,
       );
     }).toList();
+  }
+
+  /// Each scheduled dose logged today: `medicationId|HH:mm:ss` (PKT).
+  Future<Set<String>> getTodayTakenDoseSlotKeys(String patientId) async {
+    final pkt = PakistanTime.now();
+    final start = PakistanTime.dayStartUtc(pkt);
+    final end = PakistanTime.dayEndUtc(pkt);
+
+    final rows = List<Map<String, dynamic>>.from(
+      await _client
+          .from('dose_logs')
+          .select('medication_id,scheduled_for')
+          .eq('patient_id', patientId)
+          .eq('status', 'taken')
+          .gte('scheduled_for', start.toIso8601String())
+          .lt('scheduled_for', end.toIso8601String()),
+    );
+
+    return rows.map((r) {
+      final medId = r['medication_id'].toString();
+      final scheduled = DateTime.tryParse(
+        (r['scheduled_for'] ?? '').toString(),
+      );
+      if (scheduled == null) return medId;
+      final raw = PakistanTime.scheduleRawFromUtc(scheduled);
+      return MedicationDoseStatusLogic.doseSlotKey(medId, raw);
+    }).toSet();
   }
 
   Future<Set<String>> getTodayTakenMedicationIds(String patientId) async {

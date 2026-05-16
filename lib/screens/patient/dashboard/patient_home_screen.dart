@@ -9,6 +9,7 @@ import '../../../core/backend/backend.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/reminders/medication_reminder_watcher.dart';
+import '../../../core/maps/patient_home_location_store.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../../../core/time/medication_dose_status.dart';
 import '../../../core/time/pakistan_time.dart';
@@ -33,6 +34,8 @@ class _MedSchedule {
     required this.doseUr,
     required this.status,
     this.scheduleRaw,
+    this.takenSlots = 0,
+    this.totalSlots = 1,
   });
 
   final String medicationId;
@@ -43,6 +46,8 @@ class _MedSchedule {
   final String doseUr;
   final _MedStatus status;
   final String? scheduleRaw;
+  final int takenSlots;
+  final int totalSlots;
 }
 
 class _PatientHomeScreenState extends State<PatientHomeScreen>
@@ -67,7 +72,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
   Timer? _statusRefreshTimer;
   bool _loadingMeds = true;
   List<_MedSchedule> _items = [];
-  Set<String> _takenTodayIds = {};
+  List<MedicationRecord> _medRecords = [];
+  Set<String> _takenSlotKeys = {};
 
   @override
   void initState() {
@@ -97,23 +103,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
   }
 
   void _recomputeStatuses() {
-    if (!mounted || _items.isEmpty) return;
+    if (!mounted || _medRecords.isEmpty) return;
     setState(() {
-      _items = [
-        for (final e in _items)
-          _MedSchedule(
-            medicationId: e.medicationId,
-            nameEn: e.nameEn,
-            nameUr: e.nameUr,
-            time: e.time,
-            doseEn: e.doseEn,
-            doseUr: e.doseUr,
-            status: _takenTodayIds.contains(e.medicationId)
-                ? _MedStatus.taken
-                : _statusFromRaw(e.scheduleRaw),
-            scheduleRaw: e.scheduleRaw,
-          ),
-      ];
+      _items = _medRecords.map(_fromRecord).toList();
     });
   }
 
@@ -138,10 +130,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     }
     try {
       final rows = await Backend.repo.getMedicationsForPatient(uid);
-      final takenIds = await Backend.repo.getTodayTakenMedicationIds(uid);
+      final takenSlots = await Backend.repo.getTodayTakenDoseSlotKeys(uid);
       if (!mounted) return;
       setState(() {
-        _takenTodayIds = takenIds;
+        _medRecords = rows;
+        _takenSlotKeys = takenSlots;
         _items = rows.map(_fromRecord).toList();
         _loadingMeds = false;
       });
@@ -151,18 +144,51 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       setState(() {
         _loadingMeds = false;
         _items = [];
+        _medRecords = [];
       });
       syncMedicationReminders(const []);
     }
   }
 
+  List<String> _scheduleRawsFor(MedicationRecord r) {
+    if (r.scheduleRaws.isNotEmpty) {
+      return r.scheduleRaws
+          .where((s) => s.isNotEmpty && s != '--:--')
+          .toList();
+    }
+    final first = r.firstScheduleRaw;
+    if (first == null || first.isEmpty || first == '--:--') return const [];
+    return [first];
+  }
+
   _MedSchedule _fromRecord(MedicationRecord r) {
-    final takenToday = _takenTodayIds.contains(r.id);
-    final scheduleRaws =
-        r.scheduleRaws.isNotEmpty ? r.scheduleRaws : [r.firstScheduleRaw];
+    final raws = _scheduleRawsFor(r);
     final nextRaw =
-        MedicationDoseStatusLogic.nextActionableScheduleRaw(scheduleRaws) ??
+        MedicationDoseStatusLogic.nextActionableScheduleRaw(raws) ??
             r.firstScheduleRaw;
+
+    final totalSlots = raws.length;
+    final takenSlots = MedicationDoseStatusLogic.countTakenSlotsForMedication(
+      medicationId: r.id,
+      scheduleRaws: raws,
+      takenSlotKeys: _takenSlotKeys,
+    );
+
+    final _MedStatus status;
+    if (totalSlots > 0 && takenSlots >= totalSlots) {
+      status = _MedStatus.taken;
+    } else {
+      status = switch (MedicationDoseStatusLogic.statusForMedicationSlots(
+        scheduleRaws: raws,
+        takenSlotKeys: _takenSlotKeys,
+        medicationId: r.id,
+      )) {
+        MedicationDoseStatus.upcoming => _MedStatus.upcoming,
+        MedicationDoseStatus.dueSoon => _MedStatus.dueSoon,
+        MedicationDoseStatus.missed => _MedStatus.missed,
+      };
+    }
+
     return _MedSchedule(
       medicationId: r.id,
       nameEn: r.nameEn,
@@ -170,27 +196,20 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       time: r.timeLabel,
       doseEn: r.doseLabel,
       doseUr: r.doseLabel,
-      status: takenToday
-          ? _MedStatus.taken
-          : _statusFromRaws(scheduleRaws),
+      status: status,
       scheduleRaw: nextRaw,
+      takenSlots: takenSlots,
+      totalSlots: totalSlots > 0 ? totalSlots : 1,
     );
   }
 
-  _MedStatus _statusFromRaws(Iterable<String?> schedules) {
-    return switch (MedicationDoseStatusLogic.fromScheduleRaws(schedules)) {
-      MedicationDoseStatus.upcoming => _MedStatus.upcoming,
-      MedicationDoseStatus.dueSoon => _MedStatus.dueSoon,
-      MedicationDoseStatus.missed => _MedStatus.missed,
-    };
-  }
-
-  _MedStatus _statusFromRaw(String? raw) {
-    return switch (MedicationDoseStatusLogic.fromScheduleRaw(raw)) {
-      MedicationDoseStatus.upcoming => _MedStatus.upcoming,
-      MedicationDoseStatus.dueSoon => _MedStatus.dueSoon,
-      MedicationDoseStatus.missed => _MedStatus.missed,
-    };
+  TodayDoseSlotCounts _slotCounts() {
+    return MedicationDoseStatusLogic.countTodaySlots(
+      meds: _medRecords.map(
+        (r) => (medicationId: r.id, scheduleRaws: _scheduleRawsFor(r)),
+      ),
+      takenSlotKeys: _takenSlotKeys,
+    );
   }
 
   @override
@@ -230,8 +249,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     return '${weekdays[d.weekday - 1]}, ${months[d.month - 1]} ${d.day}, ${d.year}';
   }
 
-  int _count(_MedStatus s) => _items.where((e) => e.status == s).length;
-
   void _openForItem(_MedSchedule item) {
     AppSession.pendingDoseReminder = PendingDoseReminder(
       medicationId: item.medicationId,
@@ -252,6 +269,24 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
         arguments: item.medicationId,
       );
     }
+  }
+
+  Future<void> _openNearbyCareMap() async {
+    final userId =
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) return;
+    final home = await PatientHomeLocationStore.load(userId);
+    if (!mounted) return;
+    if (home == null) {
+      final saved = await Navigator.pushNamed<bool>(
+        context,
+        AppRoutes.patientHomeArea,
+      );
+      if (saved != true || !mounted) return;
+    }
+    if (!mounted) return;
+    await Navigator.pushNamed(context, AppRoutes.nearbyCareMap);
   }
 
   Future<void> _generatePatientLinkCode() async {
@@ -314,6 +349,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     final topInset = mq.padding.top;
     final bottomInset = mq.padding.bottom;
     final today = PakistanTime.now();
+    final slotCounts = _slotCounts();
+    const quickActionsHeight = 72.0;
 
     return Scaffold(
       backgroundColor: _contentBg,
@@ -325,6 +362,17 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
               _DashboardHeader(
                 topPadding: topInset,
                 dateLabel: _formatHeaderDate(today),
+                onGenerateCode: _generatePatientLinkCode,
+              ),
+              _PatientQuickActions(
+                onManageMeds: () async {
+                  await Navigator.pushNamed(
+                    context,
+                    AppRoutes.medicationManagement,
+                  );
+                  _loadMeds();
+                },
+                onNearbyCare: _openNearbyCareMap,
                 onNotifications: () {
                   if (_items.isNotEmpty) {
                     final upcoming = _items
@@ -349,18 +397,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                     AppRoutes.notificationOverlay,
                   );
                 },
-                onManageMeds: () async {
-                  await Navigator.pushNamed(
-                    context,
-                    AppRoutes.medicationManagement,
-                  );
-                  _loadMeds();
-                },
-                onSettings: () =>
-                    Navigator.pushNamed(context, AppRoutes.settings),
                 onHistory: () =>
                     Navigator.pushNamed(context, AppRoutes.patientHistory),
-                onGenerateCode: _generatePatientLinkCode,
+                onSettings: () =>
+                    Navigator.pushNamed(context, AppRoutes.settings),
               ),
               Expanded(
                 child: _loadingMeds
@@ -371,7 +411,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                           18,
                           18,
                           18,
-                          bottomInset + 112,
+                          bottomInset + 112 + quickActionsHeight,
                         ),
                         physics: const AlwaysScrollableScrollPhysics(
                           parent: BouncingScrollPhysics(),
@@ -390,7 +430,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                         ],
                       )
                     : ListView.separated(
-                  padding: EdgeInsets.fromLTRB(18, 18, 18, bottomInset + 112),
+                  padding: EdgeInsets.fromLTRB(
+                    18,
+                    18,
+                    18,
+                    bottomInset + 112 + quickActionsHeight,
+                  ),
                   physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics(),
                   ),
@@ -443,10 +488,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                       ),
                     ),
                 child: _FloatingSummaryBar(
-                  taken: _count(_MedStatus.taken),
-                  missed: _count(_MedStatus.missed),
-                  upcoming:
-                      _count(_MedStatus.upcoming) + _count(_MedStatus.dueSoon),
+                  taken: slotCounts.taken,
+                  missed: slotCounts.missed,
+                  upcoming: slotCounts.upcoming,
                 ),
               ),
             ),
@@ -461,19 +505,11 @@ class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.topPadding,
     required this.dateLabel,
-    required this.onNotifications,
-    required this.onManageMeds,
-    required this.onSettings,
-    required this.onHistory,
     required this.onGenerateCode,
   });
 
   final double topPadding;
   final String dateLabel;
-  final VoidCallback onNotifications;
-  final VoidCallback onManageMeds;
-  final VoidCallback onSettings;
-  final VoidCallback onHistory;
   final VoidCallback onGenerateCode;
 
   @override
@@ -484,7 +520,7 @@ class _DashboardHeader extends StatelessWidget {
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(20, topPadding + 10, 12, 22),
+        padding: EdgeInsets.fromLTRB(20, topPadding + 10, 8, 18),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -525,39 +561,116 @@ class _DashboardHeader extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.92),
               ),
             ),
-            IconButton(
-              tooltip: AppStrings.myMedicines,
-              onPressed: onManageMeds,
-              icon: Icon(
-                Icons.medication_outlined,
-                color: Colors.white.withValues(alpha: 0.92),
-              ),
-            ),
-            IconButton(
-              tooltip: AppStrings.history,
-              onPressed: onHistory,
-              icon: Icon(
-                Icons.history_rounded,
-                color: Colors.white.withValues(alpha: 0.92),
-              ),
-            ),
-            IconButton(
-              tooltip: AppStrings.alerts,
-              onPressed: onNotifications,
-              icon: Icon(
-                Icons.notifications_none_rounded,
-                color: Colors.white.withValues(alpha: 0.92),
-              ),
-            ),
-            IconButton(
-              tooltip: AppStrings.settings,
-              onPressed: onSettings,
-              icon: Icon(
-                Icons.settings_outlined,
-                color: Colors.white.withValues(alpha: 0.92),
-              ),
-            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PatientQuickActions extends StatelessWidget {
+  const _PatientQuickActions({
+    required this.onManageMeds,
+    required this.onNearbyCare,
+    required this.onNotifications,
+    required this.onHistory,
+    required this.onSettings,
+  });
+
+  final VoidCallback onManageMeds;
+  final VoidCallback onNearbyCare;
+  final VoidCallback onNotifications;
+  final VoidCallback onHistory;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      child: Material(
+        color: Colors.white,
+        elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Row(
+            children: [
+              _QuickAction(
+                icon: Icons.medication_outlined,
+                label: AppLanguageState.pick(en: 'Meds', ur: 'دوا'),
+                onTap: onManageMeds,
+              ),
+              _QuickAction(
+                icon: Icons.map_outlined,
+                label: AppLanguageState.pick(en: 'Map', ur: 'نقشہ'),
+                onTap: onNearbyCare,
+              ),
+              _QuickAction(
+                icon: Icons.notifications_none_rounded,
+                label: AppLanguageState.pick(en: 'Alerts', ur: 'الرٹ'),
+                onTap: onNotifications,
+              ),
+              _QuickAction(
+                icon: Icons.history_rounded,
+                label: AppLanguageState.pick(en: 'History', ur: 'تاریخ'),
+                onTap: onHistory,
+              ),
+              _QuickAction(
+                icon: Icons.settings_outlined,
+                label: AppLanguageState.pick(en: 'Settings', ur: 'ترتیبات'),
+                onTap: onSettings,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 22, color: _PatientHomeScreenState._headerGreen),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontFamily: AppLanguageState.isUrdu
+                      ? 'NotoNastaliqUrdu'
+                      : 'KhayalRoboto',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                  color: const Color(0xFF4A4A4A),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -611,72 +724,93 @@ class _MedicineCardState extends State<_MedicineCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(
+                          AppLanguageState.pick(
+                            en: item.nameEn,
+                            ur: item.nameUr,
+                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontFamily: AppLanguageState.isUrdu
+                                    ? 'NotoNastaliqUrdu'
+                                    : 'KhayalRoboto',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 17,
+                                color: const Color(0xFF1C1C1C),
+                              ),
+                        ),
+                        if (item.totalSlots > 1 &&
+                            item.takenSlots > 0 &&
+                            item.takenSlots < item.totalSlots)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              AppLanguageState.pick(
+                                en:
+                                    '${item.takenSlots}/${item.totalSlots} doses taken today',
+                                ur:
+                                    'آج ${item.takenSlots}/${item.totalSlots} دوائیں لی گئیں',
+                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: const Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        const SizedBox(height: 10),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.schedule_rounded,
+                                size: 17,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    AppLanguageState.pick(
-                                      en: item.nameEn,
-                                      ur: item.nameUr,
+                              child: Text(
+                                item.time,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontFamily: 'KhayalRoboto',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      height: 1.35,
+                                      color: const Color(0xFF5C5C5C),
                                     ),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontFamily: 'KhayalRoboto',
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 17,
-                                          color: const Color(0xFF1C1C1C),
-                                        ),
-                                  ),
-                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                AppLanguageState.pick(
+                                  en: item.doseEn,
+                                  ur: item.doseUr,
+                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontFamily: AppLanguageState.isUrdu
+                                          ? 'NotoNastaliqUrdu'
+                                          : 'KhayalRoboto',
+                                      fontSize: 14,
+                                      height: 1.3,
+                                      color: const Color(0xFF5C5C5C),
+                                    ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             _StatusBadge(
                               status: item.status,
                               scheduleRaw: item.scheduleRaw,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.schedule_rounded,
-                              size: 17,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              item.time,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontFamily: 'KhayalRoboto',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: const Color(0xFF5C5C5C),
-                                  ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLanguageState.pick(
-                                en: item.doseEn,
-                                ur: item.doseUr,
-                              ),
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontFamily: AppLanguageState.isUrdu
-                                        ? 'NotoNastaliqUrdu'
-                                        : 'KhayalRoboto',
-                                    fontSize: 15,
-                                    height: 1.3,
-                                    color: const Color(0xFF5C5C5C),
-                                  ),
                             ),
                           ],
                         ),

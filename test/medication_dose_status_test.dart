@@ -22,6 +22,28 @@ void main() {
     });
   });
 
+  group('MedicationDoseStatusLogic.countTodaySlots', () {
+    test('counts each schedule time, not whole medicines', () {
+      final counts = MedicationDoseStatusLogic.countTodaySlots(
+        meds: [
+          (
+            medicationId: 'a',
+            scheduleRaws: ['02:00:00', '14:00:00'],
+          ),
+          (
+            medicationId: 'b',
+            scheduleRaws: ['11:00:00'],
+          ),
+        ],
+        takenSlotKeys: {
+          MedicationDoseStatusLogic.doseSlotKey('a', '02:00:00'),
+        },
+      );
+      expect(counts.taken, 1);
+      expect(counts.missed + counts.upcoming, greaterThan(0));
+    });
+  });
+
   group('PakistanTime.parseScheduleToMinutes', () {
     test('parses 24h schedule strings', () {
       expect(PakistanTime.parseScheduleToMinutes('10:00:00'), 600);

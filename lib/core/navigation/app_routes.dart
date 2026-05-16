@@ -23,6 +23,8 @@ import '../../screens/patient/history/patient_history_screen.dart';
 import '../../screens/patient/medication/dose_confirmation_screen.dart';
 import '../../screens/patient/medication/dose_taken_success_screen.dart';
 import '../../screens/patient/medication/medication_detail_screen.dart';
+import '../../screens/patient/maps/nearby_care_map_screen.dart';
+import '../../screens/patient/maps/patient_home_area_screen.dart';
 import '../../screens/patient/notification/notification_overlay_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 
@@ -51,6 +53,8 @@ abstract final class AppRoutes {
   static const doctorPatientHistory = '/doctor-patient-history';
   static const settings = '/settings';
   static const notificationOverlay = '/notification-overlay';
+  static const patientHomeArea = '/patient-home-area';
+  static const nearbyCareMap = '/nearby-care-map';
 }
 
 final Map<String, WidgetBuilder> appRoutes = {
@@ -88,4 +92,6 @@ final Map<String, WidgetBuilder> appRoutes = {
   AppRoutes.doctorPatientHistory: (_) => const DoctorPatientHistoryScreen(),
   AppRoutes.settings: (_) => const SettingsScreen(),
   AppRoutes.notificationOverlay: (_) => const NotificationOverlayScreen(),
+  AppRoutes.patientHomeArea: (_) => const PatientHomeAreaScreen(),
+  AppRoutes.nearbyCareMap: (_) => const NearbyCareMapScreen(),
 };
