@@ -848,24 +848,28 @@ class BackendRepository {
     String patientId,
   ) async {
     final meds = await getMedicationsForPatient(patientId);
-    final takenIds = await getTodayTakenMedicationIds(patientId);
+    final takenSlotKeys = await getTodayTakenDoseSlotKeys(patientId);
 
-    var todayTaken = 0;
-    var todayMissed = 0;
-    var todayUpcoming = 0;
-    for (final med in meds) {
-      if (takenIds.contains(med.id)) {
-        todayTaken++;
-        continue;
-      }
-      switch (MedicationDoseStatusLogic.fromScheduleRaws(med.scheduleRaws)) {
-        case MedicationDoseStatus.missed:
-          todayMissed++;
-        case MedicationDoseStatus.upcoming:
-        case MedicationDoseStatus.dueSoon:
-          todayUpcoming++;
-      }
-    }
+    final slotInputs = meds
+        .map(
+          (m) => (
+            medicationId: m.id,
+            scheduleRaws: m.scheduleRaws.isNotEmpty
+                ? m.scheduleRaws
+                : [
+                    if (m.firstScheduleRaw != null) m.firstScheduleRaw!,
+                  ],
+          ),
+        )
+        .toList();
+
+    final todayCounts = MedicationDoseStatusLogic.countTodaySlots(
+      meds: slotInputs,
+      takenSlotKeys: takenSlotKeys,
+    );
+    final todayTaken = todayCounts.taken;
+    final todayMissed = todayCounts.missed;
+    final todayUpcoming = todayCounts.upcoming;
 
     final pktToday = PakistanTime.now();
     const shortDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

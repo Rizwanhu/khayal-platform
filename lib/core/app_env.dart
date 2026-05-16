@@ -60,4 +60,29 @@ abstract final class AppEnv {
     if (email.isEmpty || password.isEmpty) return null;
     return (email, password);
   }
+
+  /// Monthly doctor–patient chat price shown in the app (PKR).
+  static int get chatMonthlyPricePkr {
+    final raw = dotenv.env['CHAT_MONTHLY_PRICE_PKR']?.trim();
+    return int.tryParse(raw ?? '') ?? 1000;
+  }
+
+  /// Optional Stripe Payment Link (fallback if Edge Function is not deployed).
+  static String? get chatStripePaymentLink {
+    final v = dotenv.env['CHAT_STRIPE_PAYMENT_LINK']?.trim() ?? '';
+    return v.isEmpty ? null : v;
+  }
+
+  /// QA: treat patient as subscribed without Stripe (`DEV_CHAT_SUBSCRIPTION_ACTIVE=true`).
+  static bool get devChatSubscriptionBypass {
+    if (const bool.fromEnvironment(
+      'DEV_CHAT_SUBSCRIPTION_ACTIVE',
+      defaultValue: false,
+    )) {
+      return true;
+    }
+    final v =
+        (dotenv.env['DEV_CHAT_SUBSCRIPTION_ACTIVE'] ?? '').trim().toLowerCase();
+    return v == 'true' || v == '1' || v == 'yes';
+  }
 }

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_env.dart';
+import '../../core/auth/auth_restore.dart';
 import '../../core/backend/app_session.dart';
 import '../../core/backend/backend.dart';
 import '../../core/i18n/app_language.dart';
 import '../../core/i18n/app_strings.dart';
-import '../../core/navigation/app_routes.dart';
 
 /// Phone number sign-in (no SMS OTP). Linking doctor/caregiver to patient still
 /// uses the 6-digit code from the patient home screen.
@@ -147,89 +147,12 @@ class _OtpLinkScreenState extends State<OtpLinkScreen>
       languageCode: AppLanguageState.languageCode,
     );
 
-    AppSession.setRole(
-      role: _role,
-      userId: resolvedUser.id,
-      patientId: _role == AppRole.patient ? resolvedUser.id : null,
-    );
-
     if (!mounted) return;
-    switch (_role) {
-      case AppRole.patient:
-        final patientId = resolvedUser.id;
-        final patientProfileDone =
-            await Backend.repo.patientProfileIsComplete(patientId);
-        if (!mounted) return;
-        if (!patientProfileDone) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.profileRegistration,
-            (route) => false,
-          );
-          break;
-        }
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.patientHome,
-          (route) => false,
-        );
-        break;
-      case AppRole.caregiver:
-        final caregiverId = resolvedUser.id;
-        final profileDone =
-            await Backend.repo.caregiverProfileIsComplete(caregiverId);
-        if (!mounted) return;
-        final linkedPatientId = profileDone
-            ? await Backend.repo.getFirstPatientForCaregiver(caregiverId)
-            : null;
-        if (!mounted) return;
-        AppSession.setRole(
-          role: AppRole.caregiver,
-          userId: caregiverId,
-          patientId: linkedPatientId,
-        );
-        final caregiverRoute = !profileDone
-            ? AppRoutes.caregiverRegistration
-            : (linkedPatientId != null
-                  ? AppRoutes.caregiverDashboard
-                  : AppRoutes.patientProfileSetup);
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          caregiverRoute,
-          (route) => false,
-        );
-        break;
-      case AppRole.doctor:
-        final doctorId = resolvedUser.id;
-        final doctorProfileDone =
-            await Backend.repo.doctorProfileIsComplete(doctorId);
-        if (!mounted) return;
-        if (!doctorProfileDone) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.profileRegistration,
-            (route) => false,
-          );
-          break;
-        }
-        final linkedPatientId =
-            await Backend.repo.getFirstPatientForDoctor(doctorId);
-        if (!mounted) return;
-        AppSession.setRole(
-          role: AppRole.doctor,
-          userId: doctorId,
-          patientId: linkedPatientId,
-        );
-        final doctorRoute = linkedPatientId != null
-            ? AppRoutes.doctorDashboard
-            : AppRoutes.doctorPatientSetup;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          doctorRoute,
-          (route) => false,
-        );
-        break;
-    }
+    await AuthRestore.navigateAfterSignIn(
+      context,
+      user: resolvedUser,
+      role: _role,
+    );
   }
 
   void _snack(String message) {

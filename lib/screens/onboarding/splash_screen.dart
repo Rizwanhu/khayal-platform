@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/auth/auth_restore.dart';
 import '../../core/navigation/app_routes.dart';
 
-/// Splash (SCR-001): cream gradient, sage circle with `$`, Urdu + English wordmark.
+/// Splash: shows brand, then opens home if already signed in, else onboarding.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -20,10 +21,26 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () {
+    unawaited(_goNext());
+  }
+
+  Future<void> _goNext() async {
+    await Future<void>.delayed(const Duration(milliseconds: 1600));
+    if (!mounted) return;
+
+    try {
+      final homeRoute = await AuthRestore.routeForRestoredSession();
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.languageSelect);
-    });
+      if (homeRoute != null) {
+        Navigator.pushReplacementNamed(context, homeRoute);
+        return;
+      }
+    } catch (_) {
+      // Fall through to first-time onboarding.
+    }
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, AppRoutes.languageSelect);
   }
 
   @override
@@ -43,23 +60,31 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 92,
-                  height: 92,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: _logoSage,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Text(
-                    r'$',
-                    style: TextStyle(
-                      fontFamily: 'KhayalRoboto',
-                      color: Colors.white,
-                      fontSize: 44,
-                      fontWeight: FontWeight.w500,
-                      height: 1,
+                ClipOval(
+                  child: Image.asset(
+                    'assets/khayal.jpeg',
+                    width: 92,
+                    height: 92,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                    width: 92,
+                    height: 92,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: _logoSage,
+                      shape: BoxShape.circle,
                     ),
+                    child: const Text(
+                      r'$',
+                      style: TextStyle(
+                        fontFamily: 'KhayalRoboto',
+                        color: Colors.white,
+                        fontSize: 44,
+                        fontWeight: FontWeight.w500,
+                        height: 1,
+                      ),
+                    ),
+                  ),
                   ),
                 ),
                 const SizedBox(height: 22),

@@ -9,6 +9,7 @@ class PendingDoseReminder {
     required this.timeDisplay,
     required this.doseUr,
     this.scheduleRaw,
+    this.imageStoragePath,
   });
 
   final String medicationId;
@@ -19,6 +20,9 @@ class PendingDoseReminder {
 
   /// DB `local_time` for today's dose log, e.g. `08:30:00`.
   final String? scheduleRaw;
+
+  /// Storage path in `medication-photos` bucket.
+  final String? imageStoragePath;
 }
 
 abstract final class AppSession {

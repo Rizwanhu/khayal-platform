@@ -6,6 +6,83 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/backend/backend.dart';
 
 /// Loads a time-limited signed URL for a private Storage object path.
+/// Wide photo for dose reminder / confirmation cards.
+class MedicationDoseReminderPhoto extends StatefulWidget {
+  const MedicationDoseReminderPhoto({
+    super.key,
+    required this.storagePath,
+    this.height = 132,
+  });
+
+  final String storagePath;
+  final double height;
+
+  @override
+  State<MedicationDoseReminderPhoto> createState() =>
+      _MedicationDoseReminderPhotoState();
+}
+
+class _MedicationDoseReminderPhotoState extends State<MedicationDoseReminderPhoto> {
+  late final Future<String?> _url = Backend.repo.signedMedicationImageUrl(
+    widget.storagePath,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        width: double.infinity,
+        height: widget.height,
+        child: FutureBuilder<String?>(
+          future: _url,
+          builder: (context, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return ColoredBox(
+                color: const Color(0xFFF0E6DA),
+                child: Center(
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              );
+            }
+            final u = snap.data;
+            if (u == null || u.isEmpty) {
+              return ColoredBox(
+                color: const Color(0xFFF0E6DA),
+                child: Icon(
+                  Icons.medication_rounded,
+                  size: widget.height * 0.35,
+                  color: Colors.grey.shade500,
+                ),
+              );
+            }
+            return Image.network(
+              u,
+              width: double.infinity,
+              height: widget.height,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => ColoredBox(
+                color: const Color(0xFFF0E6DA),
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  size: widget.height * 0.3,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class MedicationSignedThumb extends StatefulWidget {
   const MedicationSignedThumb({
     super.key,

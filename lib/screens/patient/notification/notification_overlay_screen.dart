@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/backend/app_session.dart';
+import '../../../core/backend/backend.dart';
+import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
+import '../../../core/reminders/medication_notification_service.dart';
 import '../widgets/dose_reminder_panel.dart';
 
 /// Modal-style reminder over dimmed scrim — same card as dose confirmation.
@@ -72,9 +76,8 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
     Navigator.pop(context);
   }
 
-  void _onTookIt() {
+  Future<void> _onTookIt() async {
     HapticFeedback.mediumImpact();
-    // Caregiver test / preview must not enter the patient dose-success flow.
     if (AppSession.currentRole == AppRole.caregiver) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -84,21 +87,51 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
           behavior: SnackBarBehavior.floating,
         ),
       );
-      _close();
+      await _close();
       return;
     }
+
+    final patientId =
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
+    final pending = AppSession.pendingDoseReminder;
+    if (patientId != null &&
+        patientId.isNotEmpty &&
+        pending != null &&
+        pending.medicationId.isNotEmpty) {
+      try {
+        await Backend.repo.confirmDose(
+          patientId: patientId,
+          medicationId: pending.medicationId,
+          status: 'taken',
+          scheduleRaw: pending.scheduleRaw,
+        );
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
     Navigator.pushReplacementNamed(context, AppRoutes.doseTakenSuccess);
   }
 
-  void _onSnooze() {
+  Future<void> _onSnooze() async {
     HapticFeedback.selectionClick();
+    final pending = AppSession.pendingDoseReminder;
+    if (pending != null) {
+      await MedicationNotificationService.instance.scheduleSnooze(pending);
+    }
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reminder set for 15 minutes from now.'),
+      SnackBar(
+        content: Text(
+          AppLanguageState.pick(
+            en: 'Reminder in 15 minutes.',
+            ur: '۱۵ منٹ بعد یاد دہانی۔',
+          ),
+        ),
         behavior: SnackBarBehavior.floating,
       ),
     );
-    _close();
+    await _close();
   }
 
   @override
@@ -130,6 +163,10 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
                     child: SlideTransition(
                       position: _cardSlide,
                       child: DoseReminderPanel(
+                        headline: AppLanguageState.pick(
+                          en: 'Time to take your medicine!',
+                          ur: 'دوا کا وقت ہو گیا!',
+                        ),
                         nameEn: AppSession.pendingDoseReminder?.nameEn ??
                             'Paracetamol',
                         nameUr: AppSession.pendingDoseReminder?.nameUr ??
@@ -138,8 +175,10 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
                             '08:00',
                         doseUr: AppSession.pendingDoseReminder?.doseUr ??
                             '1 گولی',
-                        onTookIt: _onTookIt,
-                        onSnooze: _onSnooze,
+                        imageStoragePath:
+                            AppSession.pendingDoseReminder?.imageStoragePath,
+                        onTookIt: () => _onTookIt(),
+                        onSnooze: () => _onSnooze(),
                       ),
                     ),
                   ),

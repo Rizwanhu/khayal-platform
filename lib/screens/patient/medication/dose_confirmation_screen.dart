@@ -154,6 +154,8 @@ class _DoseConfirmationScreenState extends State<DoseConfirmationScreen>
                 time: AppSession.pendingDoseReminder?.timeDisplay ?? '08:00',
                 doseUr:
                     AppSession.pendingDoseReminder?.doseUr ?? '1 گولی',
+                imageStoragePath:
+                    AppSession.pendingDoseReminder?.imageStoragePath,
                 onTookIt: _onTookIt,
                 onSnooze: _onSnooze,
               ),

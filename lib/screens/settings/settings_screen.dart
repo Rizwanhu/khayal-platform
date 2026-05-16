@@ -6,6 +6,7 @@ import '../../core/i18n/app_language.dart';
 import '../../core/i18n/app_strings.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/maps/patient_home_location_store.dart';
+import '../../core/reminders/medication_notification_service.dart';
 import '../../core/reminders/reminder_preferences.dart';
 
 /// Simple settings — options depend on logged-in role.
@@ -98,6 +99,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pushNamed(context, AppRoutes.patientHomeArea);
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: const Text('Chat with my doctor'),
+              subtitle: const Text(
+                'Paid monthly — secure messaging with your linked doctor',
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.patientDoctorChat);
+              },
+            ),
             const Divider(),
           ],
           if (role == AppRole.caregiver) ...[
@@ -125,8 +136,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SectionHeader(AppStrings.appSection),
           SwitchListTile(
             value: ReminderPreferences.inAppRemindersEnabled,
-            onChanged: (v) {
-              setState(() => ReminderPreferences.inAppRemindersEnabled = v);
+            onChanged: (v) async {
+              await ReminderPreferences.setEnabled(v);
+              if (!mounted) return;
+              setState(() {});
+              final role = AppSession.currentRole;
+              final uid = AppSession.currentUserId;
+              if (role == AppRole.patient && uid != null && uid.isNotEmpty) {
+                if (v) {
+                  final meds = await Backend.repo.getMedicationsForPatient(uid);
+                  await MedicationNotificationService.instance.syncSchedules(
+                    patientId: uid,
+                    meds: meds,
+                  );
+                } else {
+                  await MedicationNotificationService.instance
+                      .cancelAllDoseReminders();
+                }
+              }
             },
             title: Text(AppStrings.inAppReminders),
             subtitle: Text(AppStrings.inAppRemindersSub),

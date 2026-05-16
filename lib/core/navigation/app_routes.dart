@@ -25,7 +25,9 @@ import '../../screens/patient/medication/dose_taken_success_screen.dart';
 import '../../screens/patient/medication/medication_detail_screen.dart';
 import '../../screens/patient/maps/nearby_care_map_screen.dart';
 import '../../screens/patient/maps/patient_home_area_screen.dart';
+import '../../screens/patient/chat/patient_doctor_chat_screen.dart';
 import '../../screens/patient/notification/notification_overlay_screen.dart';
+import '../../screens/doctor/chat/doctor_patient_chat_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 
 abstract final class AppRoutes {
@@ -55,6 +57,8 @@ abstract final class AppRoutes {
   static const notificationOverlay = '/notification-overlay';
   static const patientHomeArea = '/patient-home-area';
   static const nearbyCareMap = '/nearby-care-map';
+  static const patientDoctorChat = '/patient-doctor-chat';
+  static const doctorPatientChat = '/doctor-patient-chat';
 }
 
 final Map<String, WidgetBuilder> appRoutes = {
@@ -94,4 +98,9 @@ final Map<String, WidgetBuilder> appRoutes = {
   AppRoutes.notificationOverlay: (_) => const NotificationOverlayScreen(),
   AppRoutes.patientHomeArea: (_) => const PatientHomeAreaScreen(),
   AppRoutes.nearbyCareMap: (_) => const NearbyCareMapScreen(),
+  AppRoutes.patientDoctorChat: (_) => const PatientDoctorChatScreen(),
+  AppRoutes.doctorPatientChat: (context) {
+    final patientId = ModalRoute.of(context)?.settings.arguments as String?;
+    return DoctorPatientChatScreen(patientId: patientId);
+  },
 };

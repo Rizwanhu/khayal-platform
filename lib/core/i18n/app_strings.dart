@@ -45,7 +45,9 @@ abstract final class AppStrings {
   static String get myMedicinesManage =>
       _t('Add, edit, and manage your dose times', 'دوائیوں اور وقت شامل/تبدیل کریں');
   static String get inAppReminders => _t('In-app dose reminders', 'ایپ میں دوا کی یاددہانی');
-  static String get inAppRemindersSub =>
-      _t('Alert while Khayal is open', 'جب خیال کھلا ہو تو الرٹ');
+  static String get inAppRemindersSub => _t(
+        'Phone alarm at dose time (app open or closed)',
+        'دوا کے وقت فون پر الارم (ایپ کھلی یا بند)',
+      );
   static String get urduLanguage => _t('Urdu language', 'اردو زبان');
 }

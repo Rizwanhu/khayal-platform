@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/i18n/app_language.dart';
 import '../../../core/reminders/medication_voice_service.dart';
+import '../../caregiver/medication/medication_photo_widgets.dart';
 
 /// Shared reminder card: bell, med info, primary + snooze actions.
 class DoseReminderPanel extends StatefulWidget {
@@ -17,6 +18,7 @@ class DoseReminderPanel extends StatefulWidget {
     required this.onSnooze,
     this.headline = 'Time to Take Medicine!',
     this.speakOnAppear = true,
+    this.imageStoragePath,
   });
 
   final String nameEn;
@@ -29,6 +31,8 @@ class DoseReminderPanel extends StatefulWidget {
 
   /// When true (default), speaks Urdu reminder once after first frame (mobile/desktop).
   final bool speakOnAppear;
+
+  final String? imageStoragePath;
 
   @override
   State<DoseReminderPanel> createState() => _DoseReminderPanelState();
@@ -153,6 +157,13 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (widget.imageStoragePath != null &&
+                    widget.imageStoragePath!.isNotEmpty) ...[
+                  MedicationDoseReminderPhoto(
+                    storagePath: widget.imageStoragePath!,
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 Text(
                   AppLanguageState.pick(en: widget.nameEn, ur: widget.nameUr),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(

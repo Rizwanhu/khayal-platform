@@ -277,6 +277,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
                             timeDisplay: m.timeLabel,
                             doseUr: m.doseLabel,
                             scheduleRaw: m.firstScheduleRaw,
+                            imageStoragePath: m.imageStoragePath,
                           );
                         }
                         Navigator.pushNamed(

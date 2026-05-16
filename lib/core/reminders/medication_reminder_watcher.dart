@@ -63,6 +63,7 @@ mixin MedicationReminderWatcherMixin<T extends StatefulWidget> on State<T> {
           timeDisplay: med.timeLabel,
           doseUr: med.doseLabel,
           scheduleRaw: raw,
+          imageStoragePath: med.imageStoragePath,
         );
 
         HapticFeedback.heavyImpact();

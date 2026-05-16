@@ -6,12 +6,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/app_env.dart';
 import 'core/i18n/app_language.dart';
 import 'core/navigation/app_routes.dart';
+import 'core/reminders/medication_notification_service.dart';
+import 'core/reminders/reminder_preferences.dart';
 import 'core/theme/app_theme.dart';
+
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await AppLanguageState.loadFromDisk();
+  await ReminderPreferences.loadFromDisk();
+  if (!kIsWeb) {
+    MedicationNotificationService.navigatorKey = rootNavigatorKey;
+    await MedicationNotificationService.instance.initialize();
+  }
   if (kDebugMode) {
     debugPrint(
       'khayal_platform: DEV_OTP_BYPASS=${AppEnv.devOtpBypass} '
@@ -42,6 +51,7 @@ class MyApp extends StatelessWidget {
       listenable: AppLanguageState.localeRevision,
       builder: (context, _) {
         return MaterialApp(
+          navigatorKey: rootNavigatorKey,
           title: 'Khayal',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,

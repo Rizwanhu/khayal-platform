@@ -44,6 +44,9 @@ dependencies:
   geolocator: ^13.0.2
   http: ^1.2.2
   url_launcher: ^6.3.1
+  webview_flutter: ^4.10.0
+  flutter_local_notifications: ^19.0.0
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +58,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/khayal.jpeg
+  adaptive_icon_background: "#608266"
+  adaptive_icon_foreground: assets/khayal.jpeg
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -70,6 +82,7 @@ flutter:
   assets:
     - .env
     - assets/fonts/
+    - assets/khayal.jpeg
 
   fonts:
     - family: KhayalRoboto

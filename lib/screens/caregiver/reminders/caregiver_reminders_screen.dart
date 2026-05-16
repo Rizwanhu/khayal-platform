@@ -168,8 +168,9 @@ class _CaregiverRemindersScreenState extends State<CaregiverRemindersScreen> {
                       'Alert sound and card while Khayal is open (patient and caregiver).',
                     ),
                     value: ReminderPreferences.inAppRemindersEnabled,
-                    onChanged: (v) {
-                      setState(() => ReminderPreferences.inAppRemindersEnabled = v);
+                    onChanged: (v) async {
+                      await ReminderPreferences.setEnabled(v);
+                      if (mounted) setState(() {});
                     },
                   ),
                   const SizedBox(height: 8),

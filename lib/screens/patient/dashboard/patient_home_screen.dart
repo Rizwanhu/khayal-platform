@@ -8,6 +8,7 @@ import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/i18n/app_strings.dart';
+import '../../../core/reminders/medication_notification_service.dart';
 import '../../../core/reminders/medication_reminder_watcher.dart';
 import '../../../core/maps/patient_home_location_store.dart';
 import '../../../core/navigation/app_routes.dart';
@@ -36,6 +37,7 @@ class _MedSchedule {
     this.scheduleRaw,
     this.takenSlots = 0,
     this.totalSlots = 1,
+    this.imageStoragePath,
   });
 
   final String medicationId;
@@ -48,6 +50,7 @@ class _MedSchedule {
   final String? scheduleRaw;
   final int takenSlots;
   final int totalSlots;
+  final String? imageStoragePath;
 }
 
 class _PatientHomeScreenState extends State<PatientHomeScreen>
@@ -90,6 +93,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      MedicationNotificationService.instance.requestAndroidPermissions();
+      MedicationNotificationService.instance.consumePendingLaunchNavigation(
+        context,
+      );
       _listController.forward();
       Future<void>.delayed(const Duration(milliseconds: 320), () {
         if (mounted) _summaryController.forward();
@@ -126,6 +133,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
         });
       }
       syncMedicationReminders(const []);
+      await MedicationNotificationService.instance.cancelAllDoseReminders();
       return;
     }
     try {
@@ -139,6 +147,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
         _loadingMeds = false;
       });
       syncMedicationReminders(rows);
+      await MedicationNotificationService.instance.syncSchedules(
+        patientId: uid,
+        meds: rows,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -147,6 +159,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
         _medRecords = [];
       });
       syncMedicationReminders(const []);
+      await MedicationNotificationService.instance.syncSchedules(
+        patientId: uid,
+        meds: const [],
+      );
     }
   }
 
@@ -200,6 +216,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       scheduleRaw: nextRaw,
       takenSlots: takenSlots,
       totalSlots: totalSlots > 0 ? totalSlots : 1,
+      imageStoragePath: r.imageStoragePath,
     );
   }
 
@@ -257,6 +274,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       timeDisplay: item.time,
       doseUr: item.doseUr,
       scheduleRaw: item.scheduleRaw,
+      imageStoragePath: item.imageStoragePath,
     );
     if (item.status == _MedStatus.upcoming ||
         item.status == _MedStatus.dueSoon) {
@@ -390,6 +408,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                       timeDisplay: u.time,
                       doseUr: u.doseUr,
                       scheduleRaw: u.scheduleRaw,
+                      imageStoragePath: u.imageStoragePath,
                     );
                   }
                   Navigator.pushNamed(

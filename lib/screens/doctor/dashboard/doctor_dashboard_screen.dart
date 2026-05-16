@@ -120,8 +120,25 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                           child: Icon(Icons.person, size: 20),
                         ),
                         title: Text(p.patientName),
-                        subtitle: const Text('Tap to view history'),
-                        trailing: const Icon(Icons.chevron_right),
+                        subtitle: const Text('Tap history · chat icon to message'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Chat',
+                              icon: const Icon(Icons.chat_bubble_outline),
+                              onPressed: () {
+                                AppSession.selectedPatientId = p.patientId;
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.doctorPatientChat,
+                                  arguments: p.patientId,
+                                );
+                              },
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           AppSession.selectedPatientId = p.patientId;
                           Navigator.pushNamed(
