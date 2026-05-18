@@ -50,4 +50,11 @@ abstract final class AppSession {
     currentUserId = userId;
     selectedPatientId = patientId;
   }
+
+  static void clear() {
+    currentRole = null;
+    currentUserId = null;
+    selectedPatientId = null;
+    clearPendingDoseReminder();
+  }
 }

@@ -6,7 +6,9 @@ import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
+import '../../../core/reminders/dose_alarm_ringtone.dart';
 import '../../../core/reminders/medication_notification_service.dart';
+import '../../../core/reminders/medication_voice_service.dart';
 import '../widgets/dose_reminder_panel.dart';
 
 /// Modal-style reminder over dimmed scrim — same card as dose confirmation.
@@ -62,6 +64,8 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
 
   @override
   void dispose() {
+    DoseAlarmRingtone.stop();
+    MedicationVoiceService.instance.stop();
     _scrimController.dispose();
     _cardController.dispose();
     AppSession.clearPendingDoseReminder();
@@ -69,6 +73,8 @@ class _NotificationOverlayScreenState extends State<NotificationOverlayScreen>
   }
 
   Future<void> _close() async {
+    await DoseAlarmRingtone.stop();
+    await MedicationVoiceService.instance.stop();
     await _cardController.reverse();
     if (!mounted) return;
     await _scrimController.reverse();

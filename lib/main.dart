@@ -6,9 +6,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/app_env.dart';
 import 'core/i18n/app_language.dart';
 import 'core/navigation/app_routes.dart';
+import 'core/reminders/medication_alarm_scheduler.dart';
 import 'core/reminders/medication_notification_service.dart';
 import 'core/reminders/reminder_preferences.dart';
 import 'core/theme/app_theme.dart';
+import 'widgets/med_alarm_lifecycle_host.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -19,6 +21,7 @@ Future<void> main() async {
   await ReminderPreferences.loadFromDisk();
   if (!kIsWeb) {
     MedicationNotificationService.navigatorKey = rootNavigatorKey;
+    MedicationAlarmScheduler.instance.attachNavigator(rootNavigatorKey);
     await MedicationNotificationService.instance.initialize();
   }
   if (kDebugMode) {
@@ -39,7 +42,11 @@ Future<void> main() async {
     }
     return true;
   }());
-  runApp(const MyApp());
+  runApp(
+    const MedAlarmLifecycleHost(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

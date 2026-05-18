@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,10 @@ import '../backend/app_session.dart';
 import '../backend/backend_repository.dart';
 import '../i18n/app_language.dart';
 import '../navigation/app_routes.dart';
+import '../time/pakistan_time.dart';
+import 'dose_alarm_ringtone.dart';
+import 'dose_alarm_system_sound.dart';
+import 'medication_voice_service.dart';
 import 'reminder_preferences.dart';
 
 /// OS-level dose alarms (lock screen / app closed) + tap opens in-app overlay.
@@ -21,14 +26,21 @@ class MedicationNotificationService {
 
   static GlobalKey<NavigatorState>? navigatorKey;
 
-  static const String _channelId = 'dose_reminders';
+  /// Channel id — system alarm tone when app is closed / phone locked.
+  static const String _channelId = 'dose_alarms_v8';
   static const int _snoozeIdBase = 900000000;
+  static const int _insistentFlag = 4;
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   final Set<int> _scheduledIds = {};
   String? _pendingLaunchPayload;
   bool _initialized = false;
+  AndroidNotificationSound? _osAlarmSound;
+
+  AndroidFlutterLocalNotificationsPlugin? get androidImplementation =>
+      _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
 
   static int _slotNotificationId(String medicationId, String scheduleRaw) {
     return Object.hash(medicationId, scheduleRaw).abs() % 2000000000;
@@ -59,24 +71,15 @@ class MedicationNotificationService {
     );
 
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await android?.createNotificationChannel(
-        const AndroidNotificationChannel(
-          _channelId,
-          'Medicine reminders',
-          description: 'Alarm when it is time to take your medicine',
-          importance: Importance.max,
-          playSound: true,
-          enableVibration: true,
-        ),
-      );
+      await _loadOsAlarmSound();
+      await _ensureAndroidChannel();
+      final android = androidImplementation;
       await android?.requestNotificationsPermission();
       await android?.requestExactAlarmsPermission();
+      await android?.requestFullScreenIntentPermission();
     }
 
     _initialized = true;
-
     await requestAndroidPermissions();
 
     final launch = await _plugin.getNotificationAppLaunchDetails();
@@ -84,46 +87,134 @@ class MedicationNotificationService {
       final payload = launch?.notificationResponse?.payload;
       if (payload != null && payload.isNotEmpty) {
         _pendingLaunchPayload = payload;
+        final reminder = _decodePayload(payload);
+        if (reminder != null) {
+          unawaited(_speakThenRing(reminder));
+        }
       }
     }
   }
 
-  Future<void> requestAndroidPermissions() async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    await android?.requestNotificationsPermission();
-    await android?.requestExactAlarmsPermission();
+  Future<void> _speakThenRing(PendingDoseReminder reminder) async {
+    await MedicationVoiceService.instance.announceDoseReminder(
+      medicineNameEn: reminder.nameEn.trim().isEmpty ? null : reminder.nameEn,
+    );
+    await DoseAlarmRingtone.start();
   }
 
-  /// Call from patient home after login / load meds.
+  Future<void> _loadOsAlarmSound() async {
+    if (_osAlarmSound != null) return;
+    _osAlarmSound = await DoseAlarmSystemSound.notificationSound();
+    if (kDebugMode && _osAlarmSound != null) {
+      debugPrint('khayal_platform: using system alarm URI for dose notifications');
+    }
+  }
+
+  AndroidNotificationChannel _androidChannel() {
+    return AndroidNotificationChannel(
+      _channelId,
+      'Medicine alarms',
+      description: 'Loud dose reminders — phone alarm tone when locked',
+      importance: Importance.max,
+      playSound: true,
+      sound: _osAlarmSound,
+      enableVibration: true,
+      enableLights: true,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      vibrationPattern: Int64List.fromList([0, 1000, 400, 1000, 400, 1500]),
+    );
+  }
+
+  Future<void> _ensureAndroidChannel() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    await _loadOsAlarmSound();
+    await androidImplementation?.createNotificationChannel(_androidChannel());
+  }
+
+  Future<void> requestAndroidPermissions({bool force = false}) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    final android = androidImplementation;
+    await android?.requestNotificationsPermission();
+    await android?.requestExactAlarmsPermission();
+    await android?.requestFullScreenIntentPermission();
+    if (force) {
+      final canExact = await android?.canScheduleExactNotifications() ?? true;
+      debugPrint('khayal_platform: canScheduleExactNotifications=$canExact');
+    }
+  }
+
   Future<void> syncSchedules({
     required String patientId,
     required List<MedicationRecord> meds,
   }) async {
     if (kIsWeb || !_initialized) return;
 
-    await cancelAllDoseReminders();
+    try {
+      await _ensureAndroidChannel();
+      await cancelAllDoseReminders();
 
-    if (!ReminderPreferences.inAppRemindersEnabled) return;
-
-    for (final med in meds) {
-      final raws = med.scheduleRaws.isNotEmpty
-          ? med.scheduleRaws
-          : [if (med.firstScheduleRaw != null) med.firstScheduleRaw!];
-      for (final raw in raws) {
-        if (raw.isEmpty || raw == '--:--') continue;
-        await _scheduleDailySlot(med: med, scheduleRaw: raw);
+      if (!ReminderPreferences.inAppRemindersEnabled) {
+        debugPrint('khayal_platform: dose alarms skipped (reminders disabled)');
+        return;
       }
+
+      var scheduledCount = 0;
+      for (final med in meds) {
+        final raws = med.scheduleRaws.isNotEmpty
+            ? med.scheduleRaws
+            : [if (med.firstScheduleRaw != null) med.firstScheduleRaw!];
+        for (final raw in raws) {
+          if (raw.isEmpty || raw == '--:--') continue;
+          final ok = await _scheduleDailySlot(med: med, scheduleRaw: raw);
+          if (ok) scheduledCount++;
+        }
+      }
+
+      if (kDebugMode && defaultTargetPlatform == TargetPlatform.android) {
+        final pending = await androidImplementation
+            ?.pendingNotificationRequests();
+        debugPrint(
+          'khayal_platform: scheduled $scheduledCount slot(s); '
+          '${pending?.length ?? 0} pending OS notification(s)',
+        );
+      }
+    } catch (e, st) {
+      debugPrint('khayal_platform: syncSchedules failed: $e\n$st');
     }
   }
 
   Future<void> cancelAllDoseReminders() async {
     if (kIsWeb) return;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await androidImplementation?.cancelAll();
+    }
     for (final id in _scheduledIds.toList()) {
       await _plugin.cancel(id);
     }
     _scheduledIds.clear();
+  }
+
+  /// Shows a loud notification immediately (backup when app is open at dose time).
+  Future<void> showDoseAlarmNow(PendingDoseReminder reminder) async {
+    if (kIsWeb || !_initialized) return;
+    if (!ReminderPreferences.inAppRemindersEnabled) return;
+
+    final raw = reminder.scheduleRaw ?? '';
+    final id = raw.isEmpty
+        ? reminder.medicationId.hashCode.abs() % 2000000000
+        : _slotNotificationId(reminder.medicationId, raw);
+
+    await _plugin.show(
+      id,
+      _notificationTitle(),
+      _notificationBody(
+        nameEn: reminder.nameEn,
+        nameUr: reminder.nameUr,
+        doseUr: reminder.doseUr,
+      ),
+      _notificationDetails(),
+      payload: _encodePayload(reminder),
+    );
   }
 
   Future<void> scheduleSnooze(PendingDoseReminder reminder) async {
@@ -136,47 +227,59 @@ class MedicationNotificationService {
     final when = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 15));
     final payload = _encodePayload(reminder);
 
-    await _plugin.zonedSchedule(
-      id,
-      _notificationTitle(),
-      _notificationBody(
+    await _zonedScheduleWithFallback(
+      id: id,
+      title: _notificationTitle(),
+      body: _notificationBody(
         nameEn: reminder.nameEn,
         nameUr: reminder.nameUr,
         doseUr: reminder.doseUr,
       ),
-      when,
-      _notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      when: when,
       payload: payload,
+      matchDaily: false,
     );
     _scheduledIds.add(id);
   }
 
-  /// Opens overlay if app was launched from a dose notification.
   void consumePendingLaunchNavigation(BuildContext context) {
     final payload = _pendingLaunchPayload;
     if (payload == null || payload.isEmpty) return;
     _pendingLaunchPayload = null;
+    final reminder = _decodePayload(payload);
+    if (reminder != null) {
+      unawaited(_speakThenRing(reminder));
+    } else {
+      DoseAlarmRingtone.start();
+    }
     _openOverlayFromPayload(context, payload);
   }
 
-  Future<void> _scheduleDailySlot({
+  tz.TZDateTime _nextDailyFireTime({required int hour, required int minute}) {
+    final now = tz.TZDateTime.now(tz.local);
+    var next = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    if (!next.isAfter(now)) {
+      next = next.add(const Duration(days: 1));
+    }
+    return next;
+  }
+
+  Future<bool> _scheduleDailySlot({
     required MedicationRecord med,
     required String scheduleRaw,
   }) async {
-    final parts = scheduleRaw.split(':');
-    if (parts.length < 2) return;
-    final h = int.tryParse(parts[0].trim());
-    final m = int.tryParse(parts[1].trim());
-    if (h == null || m == null) return;
+    final min = PakistanTime.parseScheduleToMinutes(scheduleRaw);
+    if (min == null) {
+      debugPrint(
+        'khayal_platform: skip invalid schedule "$scheduleRaw" for ${med.id}',
+      );
+      return false;
+    }
+    final h = min ~/ 60;
+    final m = min % 60;
 
     final id = _slotNotificationId(med.id, scheduleRaw);
-    final now = tz.TZDateTime.now(tz.local);
-    var first = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
-    if (!first.isAfter(now)) {
-      first = first.add(const Duration(days: 1));
-    }
-
+    final first = _nextDailyFireTime(hour: h, minute: m);
     final payload = _encodePayload(
       PendingDoseReminder(
         medicationId: med.id,
@@ -189,36 +292,84 @@ class MedicationNotificationService {
       ),
     );
 
-    await _plugin.zonedSchedule(
-      id,
-      _notificationTitle(),
-      _notificationBody(
+    final ok = await _zonedScheduleWithFallback(
+      id: id,
+      title: _notificationTitle(),
+      body: _notificationBody(
         nameEn: med.nameEn,
         nameUr: med.nameUr,
         doseUr: med.doseLabel,
       ),
-      first,
-      _notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
+      when: first,
       payload: payload,
+      matchDaily: true,
     );
-    _scheduledIds.add(id);
+    if (ok) _scheduledIds.add(id);
+    return ok;
+  }
+
+  Future<bool> _zonedScheduleWithFallback({
+    required int id,
+    required String title,
+    required String body,
+    required tz.TZDateTime when,
+    required String payload,
+    required bool matchDaily,
+  }) async {
+    final details = _notificationDetails();
+    final components =
+        matchDaily ? DateTimeComponents.time : null;
+
+    for (final mode in [
+      AndroidScheduleMode.alarmClock,
+      AndroidScheduleMode.exactAllowWhileIdle,
+      AndroidScheduleMode.inexactAllowWhileIdle,
+    ]) {
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          when,
+          details,
+          androidScheduleMode: mode,
+          matchDateTimeComponents: components,
+          payload: payload,
+        );
+        if (kDebugMode) {
+          debugPrint(
+            'khayal_platform: scheduled id=$id at $when mode=$mode',
+          );
+        }
+        return true;
+      } catch (e) {
+        debugPrint('khayal_platform: schedule id=$id mode=$mode failed: $e');
+      }
+    }
+    return false;
   }
 
   NotificationDetails _notificationDetails() {
-    const android = AndroidNotificationDetails(
+    final android = AndroidNotificationDetails(
       _channelId,
-      'Medicine reminders',
-      channelDescription: 'Alarm when it is time to take your medicine',
+      'Medicine alarms',
+      channelDescription: 'Loud dose reminders',
       importance: Importance.max,
-      priority: Priority.high,
+      priority: Priority.max,
       category: AndroidNotificationCategory.alarm,
       fullScreenIntent: true,
       visibility: NotificationVisibility.public,
       playSound: true,
+      sound: _osAlarmSound,
       enableVibration: true,
-      ticker: 'Medicine time',
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      ticker: 'دوا کا وقت — Medicine time',
+      ongoing: false,
+      autoCancel: true,
+      onlyAlertOnce: false,
+      channelShowBadge: true,
+      additionalFlags: Int32List.fromList([_insistentFlag]),
+      vibrationPattern: Int64List.fromList([0, 1000, 400, 1000, 400, 1500]),
     );
     const ios = DarwinNotificationDetails(
       presentAlert: true,
@@ -226,7 +377,7 @@ class MedicationNotificationService {
       presentSound: true,
       interruptionLevel: InterruptionLevel.timeSensitive,
     );
-    return const NotificationDetails(android: android, iOS: ios);
+    return NotificationDetails(android: android, iOS: ios);
   }
 
   String _notificationTitle() {
@@ -241,13 +392,10 @@ class MedicationNotificationService {
     required String nameUr,
     required String doseUr,
   }) {
-    final name = nameUr.trim().isNotEmpty ? nameUr.trim() : nameEn;
+    final name = nameEn.trim().isNotEmpty ? nameEn.trim() : nameUr.trim();
     final dose = doseUr.trim();
     if (dose.isEmpty) return name;
-    return AppLanguageState.pick(
-      en: '$name — $dose',
-      ur: '$name — $dose',
-    );
+    return '$name — $dose';
   }
 
   String _encodePayload(PendingDoseReminder reminder) {
@@ -287,6 +435,7 @@ class MedicationNotificationService {
     final reminder = _decodePayload(payload);
     if (reminder == null) return;
     AppSession.pendingDoseReminder = reminder;
+    unawaited(_speakThenRing(reminder));
 
     final nav = navigatorKey?.currentState;
     if (nav != null) {

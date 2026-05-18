@@ -28,6 +28,9 @@ abstract final class AppStrings {
   // Patient home
   static String get todaysMedicines => _t("Today's Medicines", 'آج کی دوائیں');
   static String get settings => _t('Settings', 'ترتیبات');
+  static String get logOut => _t('Log out', 'لاگ آؤٹ');
+  static String get logOutSubtitle =>
+      _t('Sign out of this account on this device', 'اس ڈیوائس سے اکاؤنٹ بند کریں');
   static String get myMedicines => _t('My medicines', 'میری دوائیں');
   static String get linkCode => _t('Link code', 'لنک کوڈ');
   static String get history => _t('History', 'تاریخ');
@@ -46,8 +49,8 @@ abstract final class AppStrings {
       _t('Add, edit, and manage your dose times', 'دوائیوں اور وقت شامل/تبدیل کریں');
   static String get inAppReminders => _t('In-app dose reminders', 'ایپ میں دوا کی یاددہانی');
   static String get inAppRemindersSub => _t(
-        'Phone alarm at dose time (app open or closed)',
-        'دوا کے وقت فون پر الارم (ایپ کھلی یا بند)',
+        'Loud alarm ringtone at dose time — allow exact alarms in Settings if missed',
+        'دوا کے وقت بلند الارم — اگر نہ آئے تو Settings میں exact alarms آن کریں',
       );
   static String get urduLanguage => _t('Urdu language', 'اردو زبان');
 }

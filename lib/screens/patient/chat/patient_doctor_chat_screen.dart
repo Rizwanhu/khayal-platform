@@ -5,7 +5,9 @@ import '../../../core/app_env.dart';
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/chat/chat_models.dart';
+import '../../../core/chat/chat_subscription_period.dart';
 import '../../chat/chat_conversation_panel.dart';
+import 'chat_subscription_banner.dart';
 import 'stripe_checkout_webview_screen.dart';
 
 /// Patient ↔ linked doctor chat. Requires monthly subscription (Stripe).
@@ -25,6 +27,7 @@ class _PatientDoctorChatScreenState extends State<PatientDoctorChatScreen>
   String? _error;
   LinkedDoctorInfo? _doctor;
   bool _subscribed = false;
+  PatientChatSubscription? _subscription;
   ChatThread? _thread;
   String? _patientId;
 
@@ -88,7 +91,10 @@ class _PatientDoctorChatScreenState extends State<PatientDoctorChatScreen>
 
     try {
       final doctor = await Backend.chat.getLinkedDoctorForPatient(patientId);
-      final subscribed = await Backend.chat.isPatientSubscribed(patientId);
+      final subscription = await Backend.chat.getSubscription(patientId);
+      final subscribed =
+          subscription?.isActive ??
+          await Backend.chat.isPatientSubscribed(patientId);
       ChatThread? thread;
       if (doctor != null && subscribed) {
         thread = await Backend.chat.getOrCreateThread(
@@ -99,6 +105,7 @@ class _PatientDoctorChatScreenState extends State<PatientDoctorChatScreen>
       if (!mounted) return;
       setState(() {
         _doctor = doctor;
+        _subscription = subscription;
         _subscribed = subscribed;
         _thread = thread;
         _loading = false;
@@ -195,10 +202,19 @@ class _PatientDoctorChatScreenState extends State<PatientDoctorChatScreen>
             )
           : _thread == null
           ? const Center(child: Text('Could not start chat.'))
-          : ChatConversationPanel(
-              threadId: _thread!.id,
-              currentUserId: _patientId!,
-              peerName: _doctor!.doctorName,
+          : Column(
+              children: [
+                ChatSubscriptionBanner(
+                  display: chatSubscriptionPeriodDisplay(_subscription),
+                ),
+                Expanded(
+                  child: ChatConversationPanel(
+                    threadId: _thread!.id,
+                    currentUserId: _patientId!,
+                    peerName: _doctor!.doctorName,
+                  ),
+                ),
+              ],
             ),
     );
   }

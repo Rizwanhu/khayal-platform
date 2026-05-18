@@ -49,3 +49,20 @@ using (
       )
   )
 );
+
+-- Patient can remove their own medications (solo use).
+drop policy if exists medications_delete_patient on public.medications;
+create policy medications_delete_patient
+on public.medications for delete
+to authenticated
+using (patient_id = auth.uid());
+
+-- Required so CASCADE delete from medications can remove related dose_logs.
+drop policy if exists dose_logs_delete on public.dose_logs;
+create policy dose_logs_delete
+on public.dose_logs for delete
+to authenticated
+using (
+  patient_id = auth.uid()
+  or public.caregiver_has_patient(patient_id)
+);

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../core/auth/auth_logout.dart';
 import '../../core/backend/app_session.dart';
 import '../../core/backend/backend.dart';
 import '../../core/i18n/app_language.dart';
 import '../../core/i18n/app_strings.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/maps/patient_home_location_store.dart';
+import '../../core/reminders/dose_alarm_setup_helper.dart';
 import '../../core/reminders/medication_notification_service.dart';
 import '../../core/reminders/reminder_preferences.dart';
 
@@ -158,6 +160,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: Text(AppStrings.inAppReminders),
             subtitle: Text(AppStrings.inAppRemindersSub),
           ),
+          if (role == AppRole.patient)
+            ListTile(
+              leading: const Icon(Icons.alarm_on_outlined),
+              title: Text(
+                AppLanguageState.pick(
+                  en: 'Alarms when app is closed',
+                  ur: 'ایپ بند ہونے پر الارم',
+                ),
+              ),
+              subtitle: Text(
+                AppLanguageState.pick(
+                  en: 'Allow exact alarms & turn off battery limit (Infinix: Auto-start)',
+                  ur: 'Exact alarms اور battery limit بند کریں (Infinix: Auto-start)',
+                ),
+              ),
+              onTap: () => DoseAlarmSetupHelper.showSetupSheet(context),
+            ),
           SwitchListTile(
             value: _urdu,
             onChanged: (v) async {
@@ -192,6 +211,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: Text('Privacy policy'),
             trailing: Icon(Icons.open_in_new, size: 20),
           ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout_rounded, color: Color(0xFFC62828)),
+            title: Text(
+              AppLanguageState.pick(
+                en: AppStrings.logOut,
+                ur: 'لاگ آؤٹ',
+              ),
+              style: const TextStyle(
+                color: Color(0xFFC62828),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              AppLanguageState.pick(
+                en: AppStrings.logOutSubtitle,
+                ur: 'اس ڈیوائس سے اکاؤنٹ بند کریں',
+              ),
+            ),
+            onTap: () => AuthLogout.confirmAndSignOut(context),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

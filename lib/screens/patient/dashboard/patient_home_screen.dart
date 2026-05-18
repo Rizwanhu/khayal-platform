@@ -74,6 +74,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
 
   Timer? _statusRefreshTimer;
   bool _loadingMeds = true;
+  String? _loadError;
   List<_MedSchedule> _items = [];
   List<MedicationRecord> _medRecords = [];
   Set<String> _takenSlotKeys = {};
@@ -124,11 +125,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
   }
 
   Future<void> _loadMeds() async {
-    final uid = Supabase.instance.client.auth.currentUser?.id;
+    final uid =
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
     if (uid == null || uid.isEmpty) {
       if (mounted) {
         setState(() {
           _loadingMeds = false;
+          _loadError = 'Not signed in.';
           _items = [];
         });
       }
@@ -136,25 +140,45 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       await MedicationNotificationService.instance.cancelAllDoseReminders();
       return;
     }
+
+    setState(() {
+      _loadingMeds = true;
+      _loadError = null;
+    });
+
     try {
       final rows = await Backend.repo.getMedicationsForPatient(uid);
-      final takenSlots = await Backend.repo.getTodayTakenDoseSlotKeys(uid);
+
+      Set<String> takenSlots = {};
+      try {
+        takenSlots = await Backend.repo.getTodayTakenDoseSlotKeys(uid);
+      } catch (e) {
+        debugPrint('khayal_platform: dose_logs for home skipped: $e');
+      }
+
       if (!mounted) return;
       setState(() {
         _medRecords = rows;
         _takenSlotKeys = takenSlots;
         _items = rows.map(_fromRecord).toList();
         _loadingMeds = false;
+        _loadError = null;
       });
+
       syncMedicationReminders(rows);
+      await MedicationNotificationService.instance.requestAndroidPermissions(
+        force: true,
+      );
       await MedicationNotificationService.instance.syncSchedules(
         patientId: uid,
         meds: rows,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('khayal_platform: patient home meds load failed: $e');
       if (!mounted) return;
       setState(() {
         _loadingMeds = false;
+        _loadError = e.toString();
         _items = [];
         _medRecords = [];
       });
@@ -424,6 +448,40 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
               Expanded(
                 child: _loadingMeds
                     ? const Center(child: CircularProgressIndicator())
+                    : _loadError != null
+                    ? ListView(
+                        padding: EdgeInsets.fromLTRB(
+                          18,
+                          18,
+                          18,
+                          bottomInset + 112 + quickActionsHeight,
+                        ),
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        children: [
+                          const SizedBox(height: 48),
+                          Text(
+                            'Could not load medicines',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _loadError!,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: Colors.black54),
+                          ),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: FilledButton(
+                              onPressed: _loadMeds,
+                              child: const Text('Retry'),
+                            ),
+                          ),
+                        ],
+                      )
                     : _items.isEmpty
                     ? ListView(
                         padding: EdgeInsets.fromLTRB(
@@ -445,6 +503,19 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                                   fontFamily: 'KhayalRoboto',
                                   color: const Color(0xFF6B6B6B),
                                 ),
+                          ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                await Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.medicationManagement,
+                                );
+                                _loadMeds();
+                              },
+                              child: const Text('Add medicine'),
+                            ),
                           ),
                         ],
                       )

@@ -7,6 +7,7 @@ import '../i18n/app_language.dart';
 import '../navigation/app_routes.dart';
 import '../reminders/medication_notification_service.dart';
 import 'auth_session_store.dart';
+import '../reminders/medication_alarm_scheduler.dart';
 
 /// Restores [AppSession] and navigates to the correct home after a valid Supabase session.
 abstract final class AuthRestore {
@@ -37,8 +38,9 @@ abstract final class AuthRestore {
 
     switch (role) {
       case AppRole.patient:
-        final patientProfileDone =
-            await Backend.repo.patientProfileIsComplete(user.id);
+        final patientProfileDone = await Backend.repo.patientProfileIsComplete(
+          user.id,
+        );
         if (!context.mounted) return;
         if (!patientProfileDone) {
           Navigator.pushNamedAndRemoveUntil(
@@ -54,25 +56,29 @@ abstract final class AuthRestore {
           (route) => false,
         );
         await _primePatientNotifications(user.id);
+        await MedicationAlarmScheduler.instance.refreshForCurrentPatient();
         break;
       case AppRole.caregiver:
-        final profileDone =
-            await Backend.repo.caregiverProfileIsComplete(user.id);
+        final profileDone = await Backend.repo.caregiverProfileIsComplete(
+          user.id,
+        );
         if (!context.mounted) return;
-        final linkedPatientId = profileDone
-            ? await Backend.repo.getFirstPatientForCaregiver(user.id)
-            : null;
+        final linkedPatientId =
+            profileDone
+                ? await Backend.repo.getFirstPatientForCaregiver(user.id)
+                : null;
         if (!context.mounted) return;
         AppSession.setRole(
           role: AppRole.caregiver,
           userId: user.id,
           patientId: linkedPatientId,
         );
-        final caregiverRoute = !profileDone
-            ? AppRoutes.caregiverRegistration
-            : (linkedPatientId != null
-                  ? AppRoutes.caregiverDashboard
-                  : AppRoutes.patientProfileSetup);
+        final caregiverRoute =
+            !profileDone
+                ? AppRoutes.caregiverRegistration
+                : (linkedPatientId != null
+                    ? AppRoutes.caregiverDashboard
+                    : AppRoutes.patientProfileSetup);
         Navigator.pushNamedAndRemoveUntil(
           context,
           caregiverRoute,
@@ -80,8 +86,9 @@ abstract final class AuthRestore {
         );
         break;
       case AppRole.doctor:
-        final doctorProfileDone =
-            await Backend.repo.doctorProfileIsComplete(user.id);
+        final doctorProfileDone = await Backend.repo.doctorProfileIsComplete(
+          user.id,
+        );
         if (!context.mounted) return;
         if (!doctorProfileDone) {
           Navigator.pushNamedAndRemoveUntil(
@@ -91,17 +98,19 @@ abstract final class AuthRestore {
           );
           return;
         }
-        final linkedPatientId =
-            await Backend.repo.getFirstPatientForDoctor(user.id);
+        final linkedPatientId = await Backend.repo.getFirstPatientForDoctor(
+          user.id,
+        );
         if (!context.mounted) return;
         AppSession.setRole(
           role: AppRole.doctor,
           userId: user.id,
           patientId: linkedPatientId,
         );
-        final doctorRoute = linkedPatientId != null
-            ? AppRoutes.doctorDashboard
-            : AppRoutes.doctorPatientSetup;
+        final doctorRoute =
+            linkedPatientId != null
+                ? AppRoutes.doctorDashboard
+                : AppRoutes.doctorPatientSetup;
         Navigator.pushNamedAndRemoveUntil(
           context,
           doctorRoute,
@@ -145,6 +154,7 @@ abstract final class AuthRestore {
           return AppRoutes.profileRegistration;
         }
         await _primePatientNotifications(user.id);
+        await MedicationAlarmScheduler.instance.refreshForCurrentPatient();
         return AppRoutes.patientHome;
       case AppRole.caregiver:
         if (!await Backend.repo.caregiverProfileIsComplete(user.id)) {

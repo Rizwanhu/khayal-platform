@@ -93,12 +93,12 @@ class _SplashScreenState extends State<SplashScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'NotoNastaliqUrdu',
-                    fontSize: 44,
-                    height: 1.25,
+                    fontSize: 40,
+                    height: 1.15,
                     color: Color(0xFF000000),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 20),
                 const Text(
                   'Khayal',
                   textAlign: TextAlign.center,
@@ -107,6 +107,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     fontSize: 17,
                     fontWeight: FontWeight.w400,
                     letterSpacing: 0.35,
+                    height: 1.2,
                     color: Color(0xFF000000),
                   ),
                 ),

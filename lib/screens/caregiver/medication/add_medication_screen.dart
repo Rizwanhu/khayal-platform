@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/backend/backend.dart';
+import '../../../core/medication/medication_type_options.dart';
 import '../../../core/medication/med_patient_context.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
@@ -33,7 +34,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
   Uint8List? _pickedPhotoBytes;
   String? _pickedPhotoMime;
 
-  static const _types = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
+  static const _types = MedicationTypeOptions.uiLabels;
   static const _frequencies = [
     'Daily',
     'Twice daily',
@@ -431,7 +432,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen>
 
     setState(() => _saving = true);
     try {
-      final mappedType = _type == 'Liquid' ? 'syrup' : _type.toLowerCase();
+      final mappedType = MedicationTypeOptions.toDatabaseValue(_type);
       final medId = await Backend.repo.createMedication(
         patientId: patientId,
         createdBy: actorId,

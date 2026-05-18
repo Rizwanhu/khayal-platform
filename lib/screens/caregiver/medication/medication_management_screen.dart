@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/backend/backend.dart';
+import '../../../core/medication/delete_medication.dart';
 import '../../../core/medication/med_patient_context.dart';
 import '../../../core/i18n/app_language.dart';
+import '../../../core/reminders/medication_notification_service.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
 import 'medication_photo_widgets.dart';
@@ -84,6 +86,18 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
       }
 
       final meds = await Backend.repo.getMedicationsForPatient(patientId);
+      if (MedPatientContext.isPatient) {
+        try {
+          await MedicationNotificationService.instance
+              .requestAndroidPermissions();
+          await MedicationNotificationService.instance.syncSchedules(
+            patientId: patientId,
+            meds: meds,
+          );
+        } catch (e) {
+          debugPrint('khayal_platform: alarm schedule after med list: $e');
+        }
+      }
       setState(() {
         _items = meds
             .map(
@@ -106,6 +120,16 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
         _error = 'Failed to load medications: $e';
       });
     }
+  }
+
+  Future<void> _deleteMedication(_MedListItem item) async {
+    final removed = await confirmAndDeleteMedication(
+      context,
+      medicationId: item.id,
+      nameEn: item.en,
+      nameUr: item.ur,
+    );
+    if (removed && mounted) await _loadMeds();
   }
 
   Animation<double> _anim(int i) {
@@ -204,8 +228,11 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
                             context,
                             AppRoutes.editMedication,
                             arguments: item.id,
-                          );
+                          ).then((removed) {
+                            if (removed == true) _loadMeds();
+                          });
                         },
+                        onDelete: () => _deleteMedication(item),
                       ),
                     ),
                   );
@@ -217,10 +244,15 @@ class _MedicationManagementScreenState extends State<MedicationManagementScreen>
 }
 
 class _MedTile extends StatefulWidget {
-  const _MedTile({required this.item, required this.onTap});
+  const _MedTile({
+    required this.item,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   final _MedListItem item;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   State<_MedTile> createState() => _MedTileState();
@@ -311,10 +343,35 @@ class _MedTileState extends State<_MedTile> {
                                 height: 1.35,
                               ),
                         ),
-                        const SizedBox(height: 8),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: CaregiverColors.header.withValues(alpha: 0.7),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Remove',
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                widget.onDelete();
+                              },
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                size: 22,
+                                color: Colors.red.shade400,
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: CaregiverColors.header.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

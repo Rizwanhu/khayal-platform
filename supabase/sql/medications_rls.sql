@@ -108,14 +108,20 @@ using (
   exists (
     select 1 from public.medications m
     where m.id = medication_id
-      and public.caregiver_has_patient(m.patient_id)
+      and (
+        m.patient_id = auth.uid()
+        or public.caregiver_has_patient(m.patient_id)
+      )
   )
 )
 with check (
   exists (
     select 1 from public.medications m
     where m.id = medication_id
-      and public.caregiver_has_patient(m.patient_id)
+      and (
+        m.patient_id = auth.uid()
+        or public.caregiver_has_patient(m.patient_id)
+      )
   )
 );
 
@@ -127,7 +133,10 @@ using (
   exists (
     select 1 from public.medications m
     where m.id = medication_id
-      and public.caregiver_has_patient(m.patient_id)
+      and (
+        m.patient_id = auth.uid()
+        or public.caregiver_has_patient(m.patient_id)
+      )
   )
 );
 

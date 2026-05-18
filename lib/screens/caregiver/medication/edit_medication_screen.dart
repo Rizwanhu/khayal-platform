@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/backend/backend.dart';
+import '../../../core/medication/delete_medication.dart';
+import '../../../core/medication/medication_type_options.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../caregiver_colors.dart';
 import 'medication_photo_widgets.dart';
@@ -28,7 +30,7 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
   double _saveScale = 1;
   double _uploadScale = 1;
 
-  static const _types = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
+  static const _types = MedicationTypeOptions.uiLabels;
   static const _frequencies = [
     'Daily',
     'Twice daily',
@@ -42,6 +44,7 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
   String? _newPhotoMime;
   bool _loading = true;
   bool _saving = false;
+  bool _deleting = false;
   bool _initialized = false;
 
   @override
@@ -106,12 +109,7 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
         _existingImagePath = med.imageStoragePath;
         _newPhotoBytes = null;
         _newPhotoMime = null;
-        _type =
-            _types.contains(_capitalize(med.doseUnit))
-                ? _capitalize(med.doseUnit)
-                : _type;
-        final normalizedType = _capitalize(med.medicationType);
-        if (_types.contains(normalizedType)) _type = normalizedType;
+        _type = MedicationTypeOptions.toUiLabel(med.medicationType);
         _times
           ..clear()
           ..addAll(
@@ -245,6 +243,23 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
             color: Colors.white,
           ),
         ),
+        actions: [
+          if (_medicationId != null)
+            IconButton(
+              tooltip: 'Remove medicine',
+              onPressed: _deleting || _saving ? null : () => _removeMedication(context),
+              icon: _deleting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white70,
+                      ),
+                    )
+                  : const Icon(Icons.delete_outline_rounded),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -541,6 +556,27 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
                     ),
                   ),
                 ),
+                if (_medicationId != null) ...[
+                  const SizedBox(height: 24),
+                  _fadeSlide(
+                    7,
+                    OutlinedButton.icon(
+                      onPressed: _deleting || _saving
+                          ? null
+                          : () => _removeMedication(context),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: Text(_deleting ? 'Removing...' : 'Remove medicine'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade300),
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 100),
               ],
             ),
@@ -598,6 +634,24 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
     );
   }
 
+  Future<void> _removeMedication(BuildContext context) async {
+    final medId = _medicationId;
+    if (medId == null || medId.isEmpty) return;
+
+    setState(() => _deleting = true);
+    final removed = await confirmAndDeleteMedication(
+      context,
+      medicationId: medId,
+      nameEn: _english.text.trim(),
+      nameUr: _urdu.text.trim(),
+    );
+    if (!mounted) return;
+    setState(() => _deleting = false);
+    if (removed && context.mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
   Future<void> _saveMedication(BuildContext context) async {
     final medId = _medicationId;
     if (medId == null || medId.isEmpty) {
@@ -619,7 +673,7 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
         englishName: _english.text.trim(),
         doseAmountRaw: _dose.text.trim(),
         doseUnit: _type,
-        medicationType: _type.toLowerCase(),
+        medicationType: MedicationTypeOptions.toDatabaseValue(_type),
         times:
             _times
                 .map(
@@ -672,11 +726,6 @@ class _EditMedicationScreenState extends State<EditMedicationScreen>
     final mm = int.tryParse(parts[1]);
     if (hh == null || mm == null) return null;
     return TimeOfDay(hour: hh, minute: mm);
-  }
-
-  String _capitalize(String text) {
-    if (text.isEmpty) return text;
-    return '${text[0].toUpperCase()}${text.substring(1)}';
   }
 }
 

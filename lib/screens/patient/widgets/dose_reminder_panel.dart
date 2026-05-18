@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/i18n/app_language.dart';
+import '../../../core/reminders/dose_alarm_ringtone.dart';
 import '../../../core/reminders/medication_voice_service.dart';
 import '../../caregiver/medication/medication_photo_widgets.dart';
 
@@ -29,7 +30,7 @@ class DoseReminderPanel extends StatefulWidget {
   final VoidCallback onSnooze;
   final String headline;
 
-  /// When true (default), speaks Urdu reminder once after first frame (mobile/desktop).
+  /// When true (default), speaks dose reminder once after first frame (mobile/desktop).
   final bool speakOnAppear;
 
   final String? imageStoragePath;
@@ -61,11 +62,15 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !widget.speakOnAppear || kIsWeb) return;
-      MedicationVoiceService.instance.announceUrduDoseReminder(
-        medicineNameUr: widget.nameUr.trim().isEmpty ? null : widget.nameUr,
-      );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || kIsWeb) return;
+      if (widget.speakOnAppear) {
+        await MedicationVoiceService.instance.announceDoseReminder(
+          medicineNameEn: widget.nameEn.trim().isEmpty ? null : widget.nameEn,
+        );
+      }
+      if (!mounted) return;
+      await DoseAlarmRingtone.start();
     });
     Future<void>.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
@@ -84,6 +89,8 @@ class _DoseReminderPanelState extends State<DoseReminderPanel>
 
   @override
   void dispose() {
+    DoseAlarmRingtone.stop();
+    MedicationVoiceService.instance.stop();
     _bellController.dispose();
     super.dispose();
   }

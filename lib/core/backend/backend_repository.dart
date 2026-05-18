@@ -557,8 +557,7 @@ class BackendRepository {
             'id,english_name,urdu_name,dose_amount,dose_unit,image_storage_path,'
             'medication_schedules(local_time)',
           )
-          .eq('patient_id', patientId)
-          .eq('is_active', true),
+          .eq('patient_id', patientId),
     );
 
     return rows.map((row) {
@@ -734,6 +733,20 @@ class BackendRepository {
         'local_time': _normalizeTime(t),
       });
     }
+  }
+
+  /// Deletes medication row (schedules and dose logs cascade in DB).
+  Future<void> deleteMedication(String medicationId) async {
+    final med = await getMedicationById(medicationId);
+    final imagePath = med?.imageStoragePath;
+    if (imagePath != null && imagePath.isNotEmpty) {
+      try {
+        await _client.storage.from(medicationPhotosBucket).remove([imagePath]);
+      } catch (_) {
+        // Photo may already be gone; still delete the medication row.
+      }
+    }
+    await _client.from('medications').delete().eq('id', medicationId);
   }
 
   Future<List<PatientHistoryRecord>> getPatientHistory(String patientId) async {
