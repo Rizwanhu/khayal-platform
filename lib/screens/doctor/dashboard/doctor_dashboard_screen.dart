@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
+import '../../../core/medication/dose_missed_sync.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../../common/widgets/screen_helpers.dart';
 
@@ -39,6 +40,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     }
     try {
       final patientList = await Backend.repo.getDoctorPatients(doctorId);
+      for (final p in patientList) {
+        await DoseMissedSync.syncForPatient(p.patientId);
+      }
       final missed = await Backend.repo.countMissedDosesTodayForDoctor(
         doctorId,
       );
@@ -120,19 +124,18 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                           child: Icon(Icons.person, size: 20),
                         ),
                         title: Text(p.patientName),
-                        subtitle: const Text('Tap history · chat icon to message'),
+                        subtitle: const Text('Tap to message · history icon for doses'),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              tooltip: 'Chat',
-                              icon: const Icon(Icons.chat_bubble_outline),
+                              tooltip: 'Dose history',
+                              icon: const Icon(Icons.history_rounded),
                               onPressed: () {
                                 AppSession.selectedPatientId = p.patientId;
                                 Navigator.pushNamed(
                                   context,
-                                  AppRoutes.doctorPatientChat,
-                                  arguments: p.patientId,
+                                  AppRoutes.doctorPatientHistory,
                                 );
                               },
                             ),
@@ -143,7 +146,8 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                           AppSession.selectedPatientId = p.patientId;
                           Navigator.pushNamed(
                             context,
-                            AppRoutes.doctorPatientHistory,
+                            AppRoutes.doctorPatientChat,
+                            arguments: p.patientId,
                           );
                         },
                       ),

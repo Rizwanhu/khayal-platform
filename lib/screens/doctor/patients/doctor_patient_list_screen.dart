@@ -99,18 +99,18 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
                     child: ListTile(
                       leading: const CircleAvatar(child: Icon(Icons.person)),
                       title: Text(p.patientName),
-                      subtitle: const Text('Tap for history'),
+                      subtitle: const Text('Tap to message · history icon for doses'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: 'Chat',
-                            icon: const Icon(Icons.chat_bubble_outline),
+                            tooltip: 'Dose history',
+                            icon: const Icon(Icons.history_rounded),
                             onPressed: () {
+                              AppSession.selectedPatientId = p.patientId;
                               Navigator.pushNamed(
                                 context,
-                                AppRoutes.doctorPatientChat,
-                                arguments: p.patientId,
+                                AppRoutes.doctorPatientHistory,
                               );
                             },
                           ),
@@ -121,7 +121,8 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
                         AppSession.selectedPatientId = p.patientId;
                         Navigator.pushNamed(
                           context,
-                          AppRoutes.doctorPatientHistory,
+                          AppRoutes.doctorPatientChat,
+                          arguments: p.patientId,
                         );
                       },
                     ),

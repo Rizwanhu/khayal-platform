@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
+import '../../../core/medication/dose_missed_sync.dart';
 import '../../../core/reminders/medication_reminder_watcher.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/navigation/app_routes.dart';
@@ -78,6 +79,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen>
 
       final profile = await Backend.repo.getPatientProfile(patientId);
       final meds = await Backend.repo.getMedicationsForPatient(patientId);
+      await DoseMissedSync.syncForPatient(patientId);
       final adherence = await Backend.repo.getPatientAdherenceSummary(patientId);
 
       if (!mounted) return;

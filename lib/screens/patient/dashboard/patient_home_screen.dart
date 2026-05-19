@@ -8,10 +8,11 @@ import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/i18n/app_language.dart';
 import '../../../core/i18n/app_strings.dart';
+import '../../../core/medication/dose_missed_sync.dart';
 import '../../../core/reminders/medication_notification_service.dart';
 import '../../../core/reminders/medication_reminder_watcher.dart';
-import '../../../core/maps/patient_home_location_store.dart';
 import '../../../core/navigation/app_routes.dart';
+import '../../../widgets/patient_home_drawer.dart';
 import '../../../core/time/medication_dose_status.dart';
 import '../../../core/time/pakistan_time.dart';
 
@@ -69,6 +70,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
   static const Color _dueSoonIcon = Color(0xFFC62828);
   static const Color _missedIcon = Color(0xFFC62828);
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   late final AnimationController _listController;
   late final AnimationController _summaryController;
 
@@ -106,12 +109,19 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     _loadMeds();
     _statusRefreshTimer = Timer.periodic(
       const Duration(minutes: 1),
-      (_) => _recomputeStatuses(),
+      (_) => _refreshDoseStatuses(),
     );
   }
 
-  void _recomputeStatuses() {
+  Future<void> _refreshDoseStatuses() async {
     if (!mounted || _medRecords.isEmpty) return;
+    final uid =
+        AppSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
+    if (uid != null && uid.isNotEmpty) {
+      await DoseMissedSync.syncForPatient(uid);
+    }
+    if (!mounted) return;
     setState(() {
       _items = _medRecords.map(_fromRecord).toList();
     });
@@ -155,6 +165,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       } catch (e) {
         debugPrint('khayal_platform: dose_logs for home skipped: $e');
       }
+
+      await DoseMissedSync.syncForPatient(uid);
 
       if (!mounted) return;
       setState(() {
@@ -313,24 +325,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     }
   }
 
-  Future<void> _openNearbyCareMap() async {
-    final userId =
-        AppSession.currentUserId ??
-        Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty) return;
-    final home = await PatientHomeLocationStore.load(userId);
-    if (!mounted) return;
-    if (home == null) {
-      final saved = await Navigator.pushNamed<bool>(
-        context,
-        AppRoutes.patientHomeArea,
-      );
-      if (saved != true || !mounted) return;
-    }
-    if (!mounted) return;
-    await Navigator.pushNamed(context, AppRoutes.nearbyCareMap);
-  }
-
   Future<void> _generatePatientLinkCode() async {
     final userId = AppSession.currentUserId ??
         Supabase.instance.client.auth.currentUser?.id;
@@ -395,7 +389,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     const quickActionsHeight = 72.0;
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: _contentBg,
+      drawer: const PatientHomeDrawer(),
       body: Stack(
         children: [
           Column(
@@ -404,17 +400,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
               _DashboardHeader(
                 topPadding: topInset,
                 dateLabel: _formatHeaderDate(today),
+                onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
                 onGenerateCode: _generatePatientLinkCode,
               ),
               _PatientQuickActions(
-                onManageMeds: () async {
-                  await Navigator.pushNamed(
-                    context,
-                    AppRoutes.medicationManagement,
-                  );
-                  _loadMeds();
-                },
-                onNearbyCare: _openNearbyCareMap,
                 onNotifications: () {
                   if (_items.isNotEmpty) {
                     final upcoming = _items
@@ -595,11 +584,13 @@ class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.topPadding,
     required this.dateLabel,
+    required this.onOpenMenu,
     required this.onGenerateCode,
   });
 
   final double topPadding;
   final String dateLabel;
+  final VoidCallback onOpenMenu;
   final VoidCallback onGenerateCode;
 
   @override
@@ -614,6 +605,14 @@ class _DashboardHeader extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            IconButton(
+              tooltip: 'Menu',
+              onPressed: onOpenMenu,
+              icon: Icon(
+                Icons.menu_rounded,
+                color: Colors.white.withValues(alpha: 0.95),
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -660,15 +659,11 @@ class _DashboardHeader extends StatelessWidget {
 
 class _PatientQuickActions extends StatelessWidget {
   const _PatientQuickActions({
-    required this.onManageMeds,
-    required this.onNearbyCare,
     required this.onNotifications,
     required this.onHistory,
     required this.onSettings,
   });
 
-  final VoidCallback onManageMeds;
-  final VoidCallback onNearbyCare;
   final VoidCallback onNotifications;
   final VoidCallback onHistory;
   final VoidCallback onSettings;
@@ -686,16 +681,6 @@ class _PatientQuickActions extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           child: Row(
             children: [
-              _QuickAction(
-                icon: Icons.medication_outlined,
-                label: AppLanguageState.pick(en: 'Meds', ur: 'دوا'),
-                onTap: onManageMeds,
-              ),
-              _QuickAction(
-                icon: Icons.map_outlined,
-                label: AppLanguageState.pick(en: 'Map', ur: 'نقشہ'),
-                onTap: onNearbyCare,
-              ),
               _QuickAction(
                 icon: Icons.notifications_none_rounded,
                 label: AppLanguageState.pick(en: 'Alerts', ur: 'الرٹ'),

@@ -19,27 +19,6 @@ class _DoctorPatientSetupScreenState extends State<DoctorPatientSetupScreen> {
   bool _saving = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _continueIfPatientAlreadyLinked();
-    });
-  }
-
-  Future<void> _continueIfPatientAlreadyLinked() async {
-    final doctorId = AppSession.currentUserId;
-    if (doctorId == null || doctorId.isEmpty) return;
-    final patientId = await Backend.repo.getFirstPatientForDoctor(doctorId);
-    if (patientId == null || !mounted) return;
-    AppSession.setRole(
-      role: AppRole.doctor,
-      userId: doctorId,
-      patientId: patientId,
-    );
-    Navigator.pushReplacementNamed(context, AppRoutes.doctorDashboard);
-  }
-
-  @override
   void dispose() {
     _patientPhoneController.dispose();
     _linkCodeController.dispose();

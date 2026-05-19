@@ -56,7 +56,7 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
   Widget build(BuildContext context) {
     return ScreenTemplate(
       title: 'History',
-      subtitle: 'Live data from Supabase',
+      subtitle: 'Your recent dose records',
       child:
           _loading
               ? const Center(child: CircularProgressIndicator())

@@ -6,7 +6,6 @@ import '../../core/backend/backend.dart';
 import '../../core/i18n/app_language.dart';
 import '../../core/i18n/app_strings.dart';
 import '../../core/navigation/app_routes.dart';
-import '../../core/maps/patient_home_location_store.dart';
 import '../../core/reminders/dose_alarm_setup_helper.dart';
 import '../../core/reminders/medication_notification_service.dart';
 import '../../core/reminders/reminder_preferences.dart';
@@ -21,22 +20,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _urdu = AppLanguageState.isUrdu;
-
-  Future<void> _openPatientCareMap(BuildContext context) async {
-    final uid = AppSession.currentUserId;
-    if (uid == null || uid.isEmpty) return;
-    final home = await PatientHomeLocationStore.load(uid);
-    if (!context.mounted) return;
-    if (home == null) {
-      final saved = await Navigator.pushNamed<bool>(
-        context,
-        AppRoutes.patientHomeArea,
-      );
-      if (saved != true || !context.mounted) return;
-    }
-    if (!context.mounted) return;
-    await Navigator.pushNamed(context, AppRoutes.nearbyCareMap);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,47 +51,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: const Text('View all linked patients'),
               onTap: () {
                 Navigator.pushNamed(context, AppRoutes.doctorPatientList);
-              },
-            ),
-            const Divider(),
-          ],
-          if (role == AppRole.patient) ...[
-            _SectionHeader(AppStrings.medicinesSection),
-            ListTile(
-              leading: const Icon(Icons.medication_outlined),
-              title: Text(AppStrings.myMedicines),
-              subtitle: Text(AppStrings.myMedicinesManage),
-              onTap: () {
-                Navigator.pushNamed(context, AppRoutes.medicationManagement);
-              },
-            ),
-            const _SectionHeader('Nearby care'),
-            ListTile(
-              leading: const Icon(Icons.map_outlined),
-              title: const Text('Clinics & hospitals map'),
-              subtitle: const Text(
-                'OpenStreetMap — find care near your home',
-              ),
-              onTap: () => _openPatientCareMap(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home_work_outlined),
-              title: const Text('Set home area'),
-              subtitle: const Text(
-                'Choose where you live on the map',
-              ),
-              onTap: () {
-                Navigator.pushNamed(context, AppRoutes.patientHomeArea);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat_bubble_outline),
-              title: const Text('Chat with my doctor'),
-              subtitle: const Text(
-                'Paid monthly — secure messaging with your linked doctor',
-              ),
-              onTap: () {
-                Navigator.pushNamed(context, AppRoutes.patientDoctorChat);
               },
             ),
             const Divider(),

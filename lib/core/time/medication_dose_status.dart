@@ -19,7 +19,7 @@ class MedicationDoseStatusLogic {
   static const int dueSoonMinutesBefore = 30;
 
   /// Minutes after scheduled time before marking as missed.
-  static const int missedAfterMinutes = 180;
+  static const int missedAfterMinutes = 5;
 
   static MedicationDoseStatus fromScheduleRaw(String? raw) {
     final medMin = PakistanTime.parseScheduleToMinutes(raw);

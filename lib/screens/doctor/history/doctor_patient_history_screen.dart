@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
+import '../../../core/medication/dose_missed_sync.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../../common/widgets/screen_helpers.dart';
 
@@ -53,6 +54,7 @@ class _DoctorPatientHistoryScreenState
         return;
       }
 
+      await DoseMissedSync.syncForPatient(patientId);
       final profile = await Backend.repo.getPatientProfile(patientId);
       final history = await Backend.repo.getPatientHistory(patientId);
       setState(() {
@@ -126,6 +128,20 @@ class _DoctorPatientHistoryScreenState
                 ] else
                   InfoTile(label: 'Patient', value: _patientName),
                 const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () {
+                    final id = AppSession.selectedPatientId;
+                    if (id == null) return;
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.doctorPatientChat,
+                      arguments: id,
+                    );
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  label: const Text('Message patient'),
+                ),
+                const SizedBox(height: 16),
                 if (_rows.isEmpty)
                   const Text('No dose history recorded yet.')
                 else
