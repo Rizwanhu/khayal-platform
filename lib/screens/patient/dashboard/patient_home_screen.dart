@@ -15,6 +15,7 @@ import '../../../core/navigation/app_routes.dart';
 import '../../../widgets/patient_home_drawer.dart';
 import '../../../core/time/medication_dose_status.dart';
 import '../../../core/time/pakistan_time.dart';
+import '../../../core/ui/patient_shell_colors.dart';
 
 /// Patient home — today's doses with animated list and floating summary pill.
 class PatientHomeScreen extends StatefulWidget {
@@ -59,8 +60,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
         TickerProviderStateMixin,
         MedicationReminderWatcherMixin,
         WidgetsBindingObserver {
-  static const Color _headerGreen = Color(0xFF608266);
-  static const Color _contentBg = Color(0xFFF9F8F3);
   static const Color _summarySurface = Color(0xFFFEFCF8);
   static const Color _summaryBorder = Color(0xFFE8E4DC);
   static const Color _mutedLabel = Color(0xFF8A8A8A);
@@ -335,6 +334,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       return;
     }
     final phone = await Backend.repo.resolvePatientLinkPhone(userId);
+    if (!mounted) return;
     if (phone == null || phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -386,11 +386,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     final bottomInset = mq.padding.bottom;
     final today = PakistanTime.now();
     final slotCounts = _slotCounts();
-    const quickActionsHeight = 72.0;
+    const quickActionsHeight = 84.0;
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: _contentBg,
+      backgroundColor: PatientShellColors.canvas,
       drawer: const PatientHomeDrawer(),
       body: Stack(
         children: [
@@ -436,7 +436,38 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
               ),
               Expanded(
                 child: _loadingMeds
-                    ? const Center(child: CircularProgressIndicator())
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: PatientShellColors.header,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                AppLanguageState.pick(
+                                  en: 'Loading your medicines…',
+                                  ur: 'دوائیں لوڈ ہو رہی ہیں…',
+                                ),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      fontFamily: 'KhayalRoboto',
+                                      fontWeight: FontWeight.w700,
+                                      color: PatientShellColors.textPrimary,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
                     : _loadError != null
                     ? ListView(
                         padding: EdgeInsets.fromLTRB(
@@ -449,24 +480,54 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                           parent: BouncingScrollPhysics(),
                         ),
                         children: [
-                          const SizedBox(height: 48),
+                          const SizedBox(height: 40),
+                          Icon(
+                            Icons.medication_outlined,
+                            size: 52,
+                            color: PatientShellColors.header.withValues(alpha: 0.35),
+                          ),
+                          const SizedBox(height: 16),
                           Text(
                             'Could not load medicines',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontFamily: 'KhayalRoboto',
+                                  fontWeight: FontWeight.w800,
+                                  color: PatientShellColors.textPrimary,
+                                ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Text(
                             _loadError!,
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.black54),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: PatientShellColors.textMuted,
+                                  height: 1.4,
+                                  fontFamily: 'KhayalRoboto',
+                                ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 22),
                           Center(
-                            child: FilledButton(
+                            child: FilledButton.icon(
                               onPressed: _loadMeds,
-                              child: const Text('Retry'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: PatientShellColors.header,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: Text(
+                                AppLanguageState.pick(
+                                  en: 'Try again',
+                                  ur: 'دوبارہ کوشش',
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -483,19 +544,47 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                           parent: BouncingScrollPhysics(),
                         ),
                         children: [
-                          const SizedBox(height: 48),
+                          const SizedBox(height: 40),
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: PatientShellColors.header.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.add_moderator_outlined,
+                              size: 40,
+                              color: PatientShellColors.header,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                           Text(
                             'No medicines scheduled yet.',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontFamily: 'KhayalRoboto',
-                                  color: const Color(0xFF6B6B6B),
+                                  fontWeight: FontWeight.w800,
+                                  color: PatientShellColors.textPrimary,
                                 ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
+                          Text(
+                            AppLanguageState.pick(
+                              en: 'Add your prescriptions so we can remind you on time.',
+                              ur: 'اپنی دوائیں شامل کریں تاکہ وقت پر یاد دلایا جا سکے۔',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: PatientShellColors.textMuted,
+                                  height: 1.4,
+                                  fontFamily: AppLanguageState.isUrdu
+                                      ? 'NotoNastaliqUrdu'
+                                      : 'KhayalRoboto',
+                                ),
+                          ),
+                          const SizedBox(height: 22),
                           Center(
-                            child: OutlinedButton(
+                            child: FilledButton.icon(
                               onPressed: () async {
                                 await Navigator.pushNamed(
                                   context,
@@ -503,7 +592,24 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
                                 );
                                 _loadMeds();
                               },
-                              child: const Text('Add medicine'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: PatientShellColors.header,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 22,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              icon: const Icon(Icons.add_rounded),
+                              label: Text(
+                                AppLanguageState.pick(
+                                  en: 'Add medicine',
+                                  ur: 'دوا شامل کریں',
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -597,7 +703,7 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: _PatientHomeScreenState._headerGreen,
+        color: PatientShellColors.header,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
       ),
       child: Padding(
@@ -607,11 +713,12 @@ class _DashboardHeader extends StatelessWidget {
           children: [
             IconButton(
               tooltip: 'Menu',
-              onPressed: onOpenMenu,
-              icon: Icon(
-                Icons.menu_rounded,
-                color: Colors.white.withValues(alpha: 0.95),
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.white,
+                minimumSize: const Size(48, 48),
               ),
+              onPressed: onOpenMenu,
+              icon: const Icon(Icons.menu_rounded, size: 26),
             ),
             Expanded(
               child: Column(
@@ -644,11 +751,12 @@ class _DashboardHeader extends StatelessWidget {
             ),
             IconButton(
               tooltip: AppStrings.linkCode,
-              onPressed: onGenerateCode,
-              icon: Icon(
-                Icons.password_rounded,
-                color: Colors.white.withValues(alpha: 0.92),
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.white,
+                minimumSize: const Size(48, 48),
               ),
+              onPressed: onGenerateCode,
+              icon: const Icon(Icons.password_rounded, size: 24),
             ),
           ],
         ),
@@ -678,7 +786,7 @@ class _PatientQuickActions extends StatelessWidget {
         shadowColor: Colors.black.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           child: Row(
             children: [
               _QuickAction(
@@ -725,11 +833,11 @@ class _QuickAction extends StatelessWidget {
           onTap();
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 22, color: _PatientHomeScreenState._headerGreen),
+              Icon(icon, size: 22, color: PatientShellColors.header),
               const SizedBox(height: 4),
               Text(
                 label,
