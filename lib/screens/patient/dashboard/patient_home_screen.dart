@@ -16,6 +16,7 @@ import '../../../widgets/patient_home_drawer.dart';
 import '../../../core/time/medication_dose_status.dart';
 import '../../../core/time/pakistan_time.dart';
 import '../../../core/ui/patient_shell_colors.dart';
+import '../../../core/ui/patient_ui_tokens.dart';
 
 /// Patient home — today's doses with animated list and floating summary pill.
 class PatientHomeScreen extends StatefulWidget {
@@ -62,7 +63,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
         WidgetsBindingObserver {
   static const Color _summarySurface = Color(0xFFFEFCF8);
   static const Color _summaryBorder = Color(0xFFE8E4DC);
-  static const Color _mutedLabel = Color(0xFF8A8A8A);
 
   static const Color _takenIcon = Color(0xFF2E7D32);
   static const Color _upcomingIcon = Color(0xFFEF6C00);
@@ -353,20 +353,26 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Link code'),
+          title: Text(
+            AppLanguageState.pick(en: 'Your link code', ur: 'آپ کا لنک کوڈ'),
+            style: PatientUiTokens.titleMediumStyle(
+              urdu: AppLanguageState.isUrdu,
+            ),
+          ),
           content: Text(
-            'Share this code with your caregiver or doctor:\n\n$code',
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 4,
+            '${AppLanguageState.pick(en: 'Tell your doctor or family this number:', ur: 'ڈاکٹر یا گھر والوں کو یہ نمبر بتائیں:')}\n\n$code',
+            style: PatientUiTokens.titleLargeStyle(urdu: false).copyWith(
+              letterSpacing: 6,
             ),
             textAlign: TextAlign.center,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close'),
+              child: Text(
+                AppLanguageState.pick(en: 'Close', ur: 'بند کریں'),
+                style: PatientUiTokens.labelStyle(urdu: AppLanguageState.isUrdu),
+              ),
             ),
           ],
         ),
@@ -386,7 +392,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen>
     final bottomInset = mq.padding.bottom;
     final today = PakistanTime.now();
     final slotCounts = _slotCounts();
-    const quickActionsHeight = 84.0;
+    const quickActionsHeight = 100.0;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -712,13 +718,16 @@ class _DashboardHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             IconButton(
-              tooltip: 'Menu',
+              tooltip: AppLanguageState.pick(en: 'Menu', ur: 'مینو'),
               style: IconButton.styleFrom(
                 foregroundColor: Colors.white,
-                minimumSize: const Size(48, 48),
+                minimumSize: const Size(
+                  PatientUiTokens.iconButtonSize,
+                  PatientUiTokens.iconButtonSize,
+                ),
               ),
               onPressed: onOpenMenu,
-              icon: const Icon(Icons.menu_rounded, size: 26),
+              icon: const Icon(Icons.menu_rounded, size: 30),
             ),
             Expanded(
               child: Column(
@@ -726,37 +735,36 @@ class _DashboardHeader extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.todaysMedicines,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontFamily: AppLanguageState.isUrdu
-                          ? 'NotoNastaliqUrdu'
-                          : 'KhayalRoboto',
+                    style: PatientUiTokens.titleLargeStyle(
+                      urdu: AppLanguageState.isUrdu,
                       color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
-                      height: 1.15,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     dateLabel,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      color: Colors.white.withValues(alpha: 0.88),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
+                    style: PatientUiTokens.bodySmallStyle(
+                      urdu: false,
+                      color: Colors.white.withValues(alpha: 0.92),
                     ),
                   ),
                 ],
               ),
             ),
             IconButton(
-              tooltip: AppStrings.linkCode,
+              tooltip: AppLanguageState.pick(
+                en: 'Link code for doctor',
+                ur: 'ڈاکٹر کے لیے کوڈ',
+              ),
               style: IconButton.styleFrom(
                 foregroundColor: Colors.white,
-                minimumSize: const Size(48, 48),
+                minimumSize: const Size(
+                  PatientUiTokens.iconButtonSize,
+                  PatientUiTokens.iconButtonSize,
+                ),
               ),
               onPressed: onGenerateCode,
-              icon: const Icon(Icons.password_rounded, size: 24),
+              icon: const Icon(Icons.vpn_key_rounded, size: 28),
             ),
           ],
         ),
@@ -790,8 +798,11 @@ class _PatientQuickActions extends StatelessWidget {
           child: Row(
             children: [
               _QuickAction(
-                icon: Icons.notifications_none_rounded,
-                label: AppLanguageState.pick(en: 'Alerts', ur: 'الرٹ'),
+                icon: Icons.notifications_active_outlined,
+                label: AppLanguageState.pick(
+                  en: 'Reminders',
+                  ur: 'یاد دہانی',
+                ),
                 onTap: onNotifications,
               ),
               _QuickAction(
@@ -833,24 +844,21 @@ class _QuickAction extends StatelessWidget {
           onTap();
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 22, color: PatientShellColors.header),
-              const SizedBox(height: 4),
+              Icon(icon, size: 28, color: PatientShellColors.header),
+              const SizedBox(height: 6),
               Text(
                 label,
-                maxLines: 1,
+                maxLines: 2,
+                textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontFamily: AppLanguageState.isUrdu
-                      ? 'NotoNastaliqUrdu'
-                      : 'KhayalRoboto',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
-                  color: const Color(0xFF4A4A4A),
-                ),
+                style: PatientUiTokens.labelStyle(
+                  urdu: AppLanguageState.isUrdu,
+                  color: PatientShellColors.textPrimary,
+                ).copyWith(fontSize: PatientUiTokens.caption),
               ),
             ],
           ),
@@ -897,7 +905,7 @@ class _MedicineCardState extends State<_MedicineCard> {
               widget.onTap();
             },
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -912,15 +920,9 @@ class _MedicineCardState extends State<_MedicineCard> {
                             en: item.nameEn,
                             ur: item.nameUr,
                           ),
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontFamily: AppLanguageState.isUrdu
-                                    ? 'NotoNastaliqUrdu'
-                                    : 'KhayalRoboto',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 17,
-                                color: const Color(0xFF1C1C1C),
-                              ),
+                          style: PatientUiTokens.titleMediumStyle(
+                            urdu: AppLanguageState.isUrdu,
+                          ).copyWith(fontSize: PatientUiTokens.body + 2),
                         ),
                         if (item.totalSlots > 1 &&
                             item.takenSlots > 0 &&
@@ -949,22 +951,18 @@ class _MedicineCardState extends State<_MedicineCard> {
                               padding: const EdgeInsets.only(top: 2),
                               child: Icon(
                                 Icons.schedule_rounded,
-                                size: 17,
-                                color: Colors.grey.shade600,
+                                size: 22,
+                                color: PatientShellColors.textSecondary,
                               ),
                             ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 item.time,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      fontFamily: 'KhayalRoboto',
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                      height: 1.35,
-                                      color: const Color(0xFF5C5C5C),
-                                    ),
+                                style: PatientUiTokens.bodyStyle(
+                                  urdu: false,
+                                  color: PatientShellColors.textSecondary,
+                                ).copyWith(fontWeight: FontWeight.w700),
                               ),
                             ),
                           ],
@@ -979,15 +977,9 @@ class _MedicineCardState extends State<_MedicineCard> {
                                   en: item.doseEn,
                                   ur: item.doseUr,
                                 ),
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      fontFamily: AppLanguageState.isUrdu
-                                          ? 'NotoNastaliqUrdu'
-                                          : 'KhayalRoboto',
-                                      fontSize: 14,
-                                      height: 1.3,
-                                      color: const Color(0xFF5C5C5C),
-                                    ),
+                                style: PatientUiTokens.bodySmallStyle(
+                                  urdu: AppLanguageState.isUrdu,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1037,10 +1029,10 @@ class _StatusIconCircle extends StatelessWidget {
     };
 
     return Container(
-      width: 48,
-      height: 48,
+      width: 54,
+      height: 54,
       decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-      child: Icon(icon, color: Colors.white, size: 24),
+      child: Icon(icon, color: Colors.white, size: 28),
     );
   }
 }
@@ -1079,22 +1071,18 @@ class _StatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: fg.withValues(alpha: 0.25)),
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontFamily: AppLanguageState.isUrdu
-              ? 'NotoNastaliqUrdu'
-              : 'KhayalRoboto',
+        style: PatientUiTokens.labelStyle(
+          urdu: AppLanguageState.isUrdu,
           color: fg,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-          letterSpacing: 0.2,
-        ),
+        ).copyWith(fontSize: PatientUiTokens.caption),
       ),
     );
   }
@@ -1253,22 +1241,17 @@ class _SummarySegment extends StatelessWidget {
               children: [
                 Text(
                   '$value',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
+                  style: PatientUiTokens.titleLargeStyle(urdu: false).copyWith(
+                    fontSize: 28,
                     color: valueColor,
-                    height: 1,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    color: _PatientHomeScreenState._mutedLabel,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
+                  style: PatientUiTokens.labelStyle(
+                    urdu: AppLanguageState.isUrdu,
+                    color: PatientShellColors.textSecondary,
                   ),
                 ),
               ],

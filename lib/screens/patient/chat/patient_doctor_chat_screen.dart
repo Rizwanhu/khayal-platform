@@ -6,7 +6,10 @@ import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/chat/chat_models.dart';
 import '../../../core/chat/chat_subscription_period.dart';
+import '../../../core/i18n/app_language.dart';
 import '../../../core/ui/patient_shell_colors.dart';
+import '../../../core/ui/patient_ui_tokens.dart';
+import '../../../core/ui/patient_ui_widgets.dart';
 import '../../../core/ui/user_facing_error.dart';
 import '../../chat/chat_conversation_panel.dart';
 import 'chat_subscription_banner.dart';
@@ -177,32 +180,47 @@ class _PatientDoctorChatScreenState extends State<PatientDoctorChatScreen>
 
     return Scaffold(
       backgroundColor: PatientShellColors.canvas,
-      appBar: AppBar(
-        backgroundColor: PatientShellColors.header,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          _doctor?.doctorName ?? 'Doctor chat',
-          style: const TextStyle(
-            fontFamily: 'KhayalRoboto',
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+      appBar: PatientUi.appBar(
+        title: _doctor?.doctorName ??
+            AppLanguageState.pick(en: 'Doctor chat', ur: 'ڈاکٹر چیٹ'),
         actions: [
           if (_subscribed)
             IconButton(
-              tooltip: 'Refresh messages',
+              tooltip: AppLanguageState.pick(
+                en: 'Refresh messages',
+                ur: 'پیغامات تازہ کریں',
+              ),
               onPressed: _load,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(Icons.refresh_rounded, size: 28),
             ),
         ],
       ),
       body: _loading
-          ? const _ChatLoadingState()
+          ? PatientUi.loadingPanel(
+              title: AppLanguageState.pick(
+                en: 'Loading your chat…',
+                ur: 'چیٹ لوڈ ہو رہی ہے…',
+              ),
+              subtitle: AppLanguageState.pick(
+                en: 'Please wait a moment.',
+                ur: 'تھوڑی دیر انتظار کریں۔',
+              ),
+            )
           : _error != null
-          ? _ChatErrorState(
+          ? PatientUi.messagePanel(
+              icon: Icons.error_outline_rounded,
+              iconColor: PatientShellColors.missed,
+              iconBg: const Color(0xFFFFEBEE),
+              title: AppLanguageState.pick(
+                en: 'Could not open chat',
+                ur: 'چیٹ نہیں کھلی',
+              ),
               message: _error!,
-              onRetry: _load,
+              primaryLabel: AppLanguageState.pick(
+                en: 'Try again',
+                ur: 'دوبارہ کوشش',
+              ),
+              onPrimary: _load,
             )
           : _doctor == null
           ? _NoDoctorLinked(onRetry: _load)
@@ -216,9 +234,23 @@ class _PatientDoctorChatScreenState extends State<PatientDoctorChatScreen>
               onRefresh: () => _refreshAfterPayment(),
             )
           : _thread == null
-          ? _ChatErrorState(
-              message: 'Chat could not be opened. Pull to refresh or try again.',
-              onRetry: _load,
+          ? PatientUi.messagePanel(
+              icon: Icons.chat_bubble_outline_rounded,
+              iconColor: PatientShellColors.header,
+              iconBg: PatientShellColors.header.withValues(alpha: 0.12),
+              title: AppLanguageState.pick(
+                en: 'Chat not ready',
+                ur: 'چیٹ تیار نہیں',
+              ),
+              message: AppLanguageState.pick(
+                en: 'Please tap Try again.',
+                ur: 'دوبارہ کوشش دبائیں۔',
+              ),
+              primaryLabel: AppLanguageState.pick(
+                en: 'Try again',
+                ur: 'دوبارہ کوشش',
+              ),
+              onPrimary: _load,
             )
           : Column(
               children: [
@@ -251,148 +283,6 @@ class _PatientDoctorChatScreenState extends State<PatientDoctorChatScreen>
   }
 }
 
-class _ChatLoadingState extends StatelessWidget {
-  const _ChatLoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: PatientShellColors.header,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Loading your chat…',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontFamily: 'KhayalRoboto',
-                    fontWeight: FontWeight.w700,
-                    color: PatientShellColors.textPrimary,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'This only takes a moment.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: PatientShellColors.textMuted,
-                    fontFamily: 'KhayalRoboto',
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatErrorState extends StatelessWidget {
-  const _ChatErrorState({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.error_outline_rounded,
-                      size: 36,
-                      color: Color(0xFFC62828),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'We couldn’t load chat',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          fontWeight: FontWeight.w800,
-                          color: PatientShellColors.textPrimary,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: PatientShellColors.textMuted,
-                          height: 1.4,
-                          fontFamily: 'KhayalRoboto',
-                        ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: onRetry,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: PatientShellColors.header,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded, size: 22),
-                      label: const Text(
-                        'Try again',
-                        style: TextStyle(
-                          fontFamily: 'KhayalRoboto',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _NoDoctorLinked extends StatelessWidget {
   const _NoDoctorLinked({required this.onRetry});
 
@@ -400,72 +290,25 @@ class _NoDoctorLinked extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: PatientShellColors.header.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.link_off_rounded,
-                  size: 48,
-                  color: PatientShellColors.header,
-                ),
-              ),
-              const SizedBox(height: 22),
-              Text(
-                'No doctor linked yet',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w800,
-                      color: PatientShellColors.textPrimary,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Open the home screen, tap the key icon, and share the 6-digit code with your doctor so they can link to you.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: PatientShellColors.textMuted,
-                      height: 1.45,
-                      fontFamily: 'KhayalRoboto',
-                    ),
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: onRetry,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: PatientShellColors.header,
-                    side: const BorderSide(color: PatientShellColors.header),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text(
-                    'I’ve shared my code — check again',
-                    style: TextStyle(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+    return PatientUi.messagePanel(
+      icon: Icons.link_off_rounded,
+      iconColor: PatientShellColors.header,
+      iconBg: PatientShellColors.header.withValues(alpha: 0.12),
+      title: AppLanguageState.pick(
+        en: 'No doctor linked yet',
+        ur: 'ابھی ڈاکٹر منسلک نہیں',
       ),
+      message: AppLanguageState.pick(
+        en:
+            'On the home screen, tap the key icon at the top. Share the 6-digit code with your doctor. Then tap the button below.',
+        ur:
+            'ہوم اسکرین پر اوپر چابی کا آئیکن دبائیں۔ 6 ہندسوں کا کوڈ ڈاکٹر کو دیں۔ پھر نیچے بٹن دبائیں۔',
+      ),
+      primaryLabel: AppLanguageState.pick(
+        en: 'I shared my code — check again',
+        ur: 'کوڈ دے دیا — دوبارہ چیک کریں',
+      ),
+      onPrimary: onRetry,
     );
   }
 }
@@ -490,134 +333,114 @@ class _ChatPaywall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(22, 16, 22, 28),
+      padding: const EdgeInsets.fromLTRB(
+        PatientUiTokens.paddingScreen,
+        16,
+        PatientUiTokens.paddingScreen,
+        28,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 8),
           Icon(
             Icons.verified_user_outlined,
-            size: 56,
-            color: PatientShellColors.header.withValues(alpha: 0.85),
+            size: 64,
+            color: PatientShellColors.header,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Text(
-            'Chat with $doctorName',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontFamily: 'KhayalRoboto',
-                  fontWeight: FontWeight.w800,
-                  color: PatientShellColors.textPrimary,
-                ),
+            AppLanguageState.pick(
+              en: 'Chat with $doctorName',
+              ur: '$doctorName سے بات',
+            ),
+            style: PatientUiTokens.titleLargeStyle(
+              urdu: AppLanguageState.isUrdu,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
-            'Private, secure messaging. Subscribe once per month to unlock.',
+            AppLanguageState.pick(
+              en: 'Safe private messages. Pay once each month to use chat.',
+              ur: 'محفوظ پیغامات۔ چیٹ کے لیے ہر ماہ ایک بار ادائیگی۔',
+            ),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: PatientShellColors.textMuted,
-                  height: 1.4,
-                  fontFamily: 'KhayalRoboto',
-                ),
+            style: PatientUiTokens.bodyStyle(
+              urdu: AppLanguageState.isUrdu,
+              color: PatientShellColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 24),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: PatientShellColors.divider,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              color: PatientShellColors.card,
+              borderRadius: BorderRadius.circular(PatientUiTokens.radiusCard),
+              border: Border.all(color: PatientShellColors.divider, width: 1.5),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 22,
-                horizontal: 20,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
               child: Column(
                 children: [
                   Text(
                     'Rs $priceLabel',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: PatientShellColors.header,
-                          fontFamily: 'KhayalRoboto',
-                        ),
+                    style: PatientUiTokens.titleLargeStyle(
+                      urdu: false,
+                      color: PatientShellColors.header,
+                    ).copyWith(fontSize: 32),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
-                    'per month',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: PatientShellColors.textMuted,
-                          fontFamily: 'KhayalRoboto',
-                        ),
+                    AppLanguageState.pick(en: 'per month', ur: 'ہر ماہ'),
+                    style: PatientUiTokens.bodyStyle(urdu: AppLanguageState.isUrdu),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Your doctor uses chat at no extra charge.',
+                    AppLanguageState.pick(
+                      en: 'Your doctor does not pay for chat.',
+                      ur: 'ڈاکٹر کو چیٹ کی الگ فیس نہیں۔',
+                    ),
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: PatientShellColors.textMuted,
-                          fontFamily: 'KhayalRoboto',
-                          height: 1.35,
-                        ),
+                    style: PatientUiTokens.bodySmallStyle(
+                      urdu: AppLanguageState.isUrdu,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          FilledButton(
-            onPressed: paying ? null : onPay,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: PatientShellColors.header,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+          const SizedBox(height: 28),
+          PatientUi.primaryButton(
+            label: AppLanguageState.pick(
+              en: 'Pay Rs $priceLabel per month',
+              ur: 'Rs $priceLabel ہر ماہ ادا کریں',
             ),
-            child: paying
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    'Pay Rs $priceLabel / month',
-                    style: const TextStyle(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
+            onPressed: paying ? null : onPay,
+            icon: Icons.payment_rounded,
+            loading: paying,
           ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: syncing || paying ? null : onRefresh,
-            child: syncing
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text(
-                    'I already paid — refresh status',
-                    style: TextStyle(
-                      fontFamily: 'KhayalRoboto',
-                      fontWeight: FontWeight.w600,
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: PatientUiTokens.minTouchHeight,
+            child: TextButton(
+              onPressed: syncing || paying ? null : onRefresh,
+              child: syncing
+                  ? const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : Text(
+                      AppLanguageState.pick(
+                        en: 'I already paid — refresh',
+                        ur: 'ادا کر چکا — تازہ کریں',
+                      ),
+                      style: PatientUiTokens.labelStyle(
+                        urdu: AppLanguageState.isUrdu,
+                        color: PatientShellColors.header,
+                      ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),

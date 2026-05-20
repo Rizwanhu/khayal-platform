@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../core/i18n/app_language.dart';
 import '../core/i18n/app_strings.dart';
 import '../core/navigation/app_routes.dart';
 import '../core/ui/patient_shell_colors.dart';
+import '../core/ui/patient_ui_tokens.dart';
+import '../core/ui/patient_ui_widgets.dart';
 
-/// Side menu for the patient dashboard (medicines, map, home area, doctor chat).
-///
-/// HCI: clear grouping, consistent touch targets, navigator captured before
-/// closing drawer so routes still open reliably.
+/// Side menu — large tap targets and plain labels for older patients.
 class PatientHomeDrawer extends StatelessWidget {
   const PatientHomeDrawer({super.key});
 
@@ -19,9 +19,8 @@ class PatientHomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Drawer(
+      width: MediaQuery.sizeOf(context).width * 0.88,
       backgroundColor: PatientShellColors.canvas,
       surfaceTintColor: Colors.transparent,
       child: SafeArea(
@@ -29,40 +28,38 @@ class PatientHomeDrawer extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              padding: const EdgeInsets.fromLTRB(
+                PatientUiTokens.paddingScreen,
+                16,
+                PatientUiTokens.paddingScreen,
+                12,
+              ),
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: PatientShellColors.header,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: PatientShellColors.header.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(PatientUiTokens.radiusCard),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                  padding: const EdgeInsets.all(PatientUiTokens.paddingCard),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Khayal',
-                        style: theme.textTheme.headlineSmall?.copyWith(
+                        style: PatientUiTokens.titleLargeStyle(
+                          urdu: false,
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontFamily: 'KhayalRoboto',
-                          letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
-                        'Your care, organised.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontFamily: 'KhayalRoboto',
-                          fontWeight: FontWeight.w500,
+                        AppLanguageState.pick(
+                          en: 'Tap a button below to open that page.',
+                          ur: 'نیچے بٹن دبائیں — وہ صفحہ کھل جائے گا۔',
+                        ),
+                        style: PatientUiTokens.bodySmallStyle(
+                          urdu: AppLanguageState.isUrdu,
+                          color: Colors.white.withValues(alpha: 0.92),
                         ),
                       ),
                     ],
@@ -71,52 +68,68 @@ class PatientHomeDrawer extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
-              child: Text(
-                'Shortcuts',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: PatientShellColors.textMuted,
-                  letterSpacing: 0.6,
-                ),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: PatientUi.sectionLabel(
+                AppLanguageState.pick(en: 'Main menu', ur: 'مین مینو'),
               ),
             ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
-                  _DrawerNavTile(
+                  PatientUi.navTile(
                     icon: Icons.medication_outlined,
                     title: AppStrings.myMedicines,
-                    subtitle: AppStrings.myMedicinesManage,
+                    subtitle: AppLanguageState.pick(
+                      en: 'Add or change your medicines',
+                      ur: 'دوائیں شامل یا تبدیل کریں',
+                    ),
                     onTap: () => _popThenPush(
                       context,
                       AppRoutes.medicationManagement,
                     ),
                   ),
-                  _DrawerNavTile(
+                  PatientUi.navTile(
                     icon: Icons.map_outlined,
-                    title: 'Clinics & hospitals map',
-                    subtitle: 'Find care near your saved home',
+                    title: AppLanguageState.pick(
+                      en: 'Hospitals & clinics map',
+                      ur: 'ہسپتال اور کلینک نقشہ',
+                    ),
+                    subtitle: AppLanguageState.pick(
+                      en: 'Find care near your home',
+                      ur: 'گھر کے قریب علاج تلاش کریں',
+                    ),
                     onTap: () {
                       final navigator = Navigator.of(context);
                       navigator.pop();
                       navigator.pushNamed(AppRoutes.nearbyCareMap);
                     },
                   ),
-                  _DrawerNavTile(
+                  PatientUi.navTile(
                     icon: Icons.home_work_outlined,
-                    title: 'Set home area',
-                    subtitle: 'Pin where you live on the map',
+                    title: AppLanguageState.pick(
+                      en: 'Set home on map',
+                      ur: 'گھر کا مقام',
+                    ),
+                    subtitle: AppLanguageState.pick(
+                      en: 'Where you live — for nearby search',
+                      ur: 'آپ کہاں رہتے ہیں',
+                    ),
                     onTap: () => _popThenPush(
                       context,
                       AppRoutes.patientHomeArea,
                     ),
                   ),
-                  _DrawerNavTile(
+                  PatientUi.navTile(
                     icon: Icons.chat_bubble_outline_rounded,
-                    title: 'Chat with my doctor',
-                    subtitle: 'Paid monthly · secure messages',
+                    title: AppLanguageState.pick(
+                      en: 'Message my doctor',
+                      ur: 'ڈاکٹر سے بات',
+                    ),
+                    subtitle: AppLanguageState.pick(
+                      en: 'Paid monthly · private chat',
+                      ur: 'ماہانہ فیس · محفوظ چیٹ',
+                    ),
                     onTap: () => _popThenPush(
                       context,
                       AppRoutes.patientDoctorChat,
@@ -125,107 +138,20 @@ class PatientHomeDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(height: 1, color: PatientShellColors.divider),
+            const Divider(height: 1, thickness: 1, color: PatientShellColors.divider),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: _DrawerNavTile(
+              child: PatientUi.navTile(
                 icon: Icons.settings_outlined,
                 title: AppStrings.settings,
-                subtitle: 'Reminders, language & account',
-                dense: true,
+                subtitle: AppLanguageState.pick(
+                  en: 'Reminders, language, sign out',
+                  ur: 'الرٹ، زبان، لاگ آؤٹ',
+                ),
                 onTap: () => _popThenPush(context, AppRoutes.settings),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerNavTile extends StatelessWidget {
-  const _DrawerNavTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.dense = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final bool dense;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: PatientShellColors.card,
-        elevation: 0,
-        shadowColor: Colors.black12,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: dense ? 12 : 14,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: dense ? 40 : 44,
-                  height: dense ? 40 : 44,
-                  decoration: BoxDecoration(
-                    color: PatientShellColors.header.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: PatientShellColors.header,
-                    size: dense ? 22 : 24,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'KhayalRoboto',
-                          color: PatientShellColors.textPrimary,
-                          fontSize: dense ? 15 : 16,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontFamily: 'KhayalRoboto',
-                          color: PatientShellColors.textMuted,
-                          fontSize: 12.5,
-                          height: 1.25,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: PatientShellColors.textMuted.withValues(alpha: 0.5),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
