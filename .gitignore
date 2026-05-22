@@ -117,3 +117,9 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+# Secrets & local environment (never commit real credentials)
+.env
+.env.local
+# Allow the committed template:
+!.env.example
+".idea/" 
