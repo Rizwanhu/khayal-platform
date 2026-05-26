@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/navigation/app_routes.dart';
+import '../../../core/ui/doctor_ui_tokens.dart';
+import '../../../core/ui/doctor_ui_widgets.dart';
+import '../../../widgets/doctor_shell_scaffold.dart';
 
 /// Doctor enters patient phone + link code from the patient home key icon.
 class DoctorPatientSetupScreen extends StatefulWidget {
@@ -79,39 +82,40 @@ class _DoctorPatientSetupScreenState extends State<DoctorPatientSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Link patient')),
+    return DoctorShellScaffold(
+      title: 'Link patient',
+      subtitle: 'Phone + code from patient app',
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(DoctorUiTokens.paddingScreen),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               'Ask the patient to tap the key icon on their home screen and share the 6-digit code.',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: DoctorUiTokens.bodyStyle(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DoctorUiTokens.gapSection),
             TextField(
               controller: _patientPhoneController,
               decoration: const InputDecoration(
                 labelText: 'Patient phone (e.g. +923001234567)',
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             TextField(
               controller: _linkCodeController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: '6-digit link code',
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _verifyCodeAndLinkPatient,
-                child: Text(_saving ? 'Linking…' : 'Verify & link patient'),
-              ),
+            const SizedBox(height: 24),
+            DoctorUi.primaryButton(
+              label: _saving ? 'Linking…' : 'Verify & link patient',
+              icon: Icons.link_rounded,
+              onPressed: _saving ? null : _verifyCodeAndLinkPatient,
             ),
           ],
         ),

@@ -3,9 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
-import '../../../core/backend/backend_repository.dart';
 import '../../../core/navigation/app_routes.dart';
-import '../../common/widgets/screen_helpers.dart';
+import '../../../core/ui/doctor_ui_tokens.dart';
+import '../../../core/ui/doctor_ui_widgets.dart';
+import '../../../widgets/doctor_patient_tile.dart';
+import '../../../widgets/doctor_shell_scaffold.dart';
 
 class DoctorPatientListScreen extends StatefulWidget {
   const DoctorPatientListScreen({super.key});
@@ -33,7 +35,7 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
     if (doctorId == null || doctorId.isEmpty) {
       setState(() {
         _loading = false;
-        _error = 'Missing doctor session. Login with phone OTP first.';
+        _error = 'Missing doctor session. Sign in first.';
       });
       return;
     }
@@ -53,83 +55,86 @@ class _DoctorPatientListScreenState extends State<DoctorPatientListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenTemplate(
-      title: 'My patients',
-      subtitle: 'Patients linked to your account',
-      child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Text(_error!)
-          : _patients.isEmpty
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('No patients linked yet.'),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () async {
-                    await Navigator.pushNamed(
-                      context,
-                      AppRoutes.doctorPatientSetup,
-                    );
-                    if (mounted) _load();
-                  },
-                  icon: const Icon(Icons.link),
-                  label: const Text('Add patient with code'),
-                ),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FilledButton.icon(
-                  onPressed: () async {
-                    await Navigator.pushNamed(
-                      context,
-                      AppRoutes.doctorPatientSetup,
-                    );
-                    if (mounted) _load();
-                  },
-                  icon: const Icon(Icons.person_add_outlined),
-                  label: const Text('Add another patient'),
-                ),
-                const SizedBox(height: 12),
-                ..._patients.map(
-                  (p) => Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
-                      title: Text(p.patientName),
-                      subtitle: const Text('Tap to message · history icon for doses'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: 'Dose history',
-                            icon: const Icon(Icons.history_rounded),
-                            onPressed: () {
-                              AppSession.selectedPatientId = p.patientId;
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.doctorPatientHistory,
-                              );
-                            },
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                      onTap: () {
-                        AppSession.selectedPatientId = p.patientId;
-                        Navigator.pushNamed(
-                          context,
-                          AppRoutes.doctorPatientChat,
-                          arguments: p.patientId,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
+    return DoctorShellScaffold(
+      title: 'All patients',
+      subtitle: 'Linked to your account',
+      onRefresh: _load,
+      body: Padding(
+        padding: const EdgeInsets.all(DoctorUiTokens.paddingScreen),
+        child: _buildBody(),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) return DoctorUi.loading();
+    if (_error != null) {
+      return DoctorUi.errorBox(_error!, onRetry: () {
+        setState(() {
+          _loading = true;
+          _error = null;
+        });
+        _load();
+      });
+    }
+    if (_patients.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DoctorUi.emptyState(
+            icon: Icons.people_outline,
+            title: 'No patients yet',
+            message: 'Link a patient using their phone and 6-digit code.',
+          ),
+          DoctorUi.primaryButton(
+            label: 'Add patient with code',
+            icon: Icons.link_rounded,
+            onPressed: () async {
+              await Navigator.pushNamed(
+                context,
+                AppRoutes.doctorPatientSetup,
+              );
+              if (mounted) _load();
+            },
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DoctorUi.primaryButton(
+          label: 'Add another patient',
+          icon: Icons.person_add_outlined,
+          onPressed: () async {
+            await Navigator.pushNamed(
+              context,
+              AppRoutes.doctorPatientSetup,
+            );
+            if (mounted) _load();
+          },
+        ),
+        const SizedBox(height: DoctorUiTokens.gapSection),
+        ..._patients.map(
+          (p) => DoctorPatientTile(
+            patient: p,
+            selected: p.patientId == AppSession.selectedPatientId,
+            onMessage: () {
+              AppSession.selectedPatientId = p.patientId;
+              Navigator.pushNamed(
+                context,
+                AppRoutes.doctorPatientChat,
+                arguments: p.patientId,
+              );
+            },
+            onHistory: () {
+              AppSession.selectedPatientId = p.patientId;
+              Navigator.pushNamed(context, AppRoutes.doctorPatientHistory);
+            },
+          ),
+        ),
+      ],
     );
   }
 }

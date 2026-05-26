@@ -3,9 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
+import '../../../core/ui/doctor_ui_widgets.dart';
 import '../../chat/chat_conversation_panel.dart';
 
-/// Doctor ↔ patient chat (free for doctors).
+/// Doctor ↔ patient chat (free for doctors). Supports text + images.
 class DoctorPatientChatScreen extends StatefulWidget {
   const DoctorPatientChatScreen({super.key, this.patientId});
 
@@ -76,22 +77,17 @@ class _DoctorPatientChatScreenState extends State<DoctorPatientChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_patientName ?? 'Patient chat'),
-            Text(
-              'Included for doctors',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white70,
-                  ),
-            ),
-          ],
+      backgroundColor: const Color(0xFFF4F7F5),
+      appBar: DoctorUi.appBar(
+        title: _patientName ?? 'Patient chat',
+        subtitle: 'Tap + photo to send from camera or gallery',
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.maybePop(context),
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? DoctorUi.loading()
           : _error != null
           ? Center(
               child: Padding(

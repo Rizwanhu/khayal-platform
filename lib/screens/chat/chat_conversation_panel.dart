@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/backend/backend.dart';
 import '../../core/chat/chat_models.dart';
+import '../../core/media/image_source_sheet.dart';
+import '../../core/ui/doctor_shell_colors.dart';
+import 'chat_image_bubble.dart';
 
 /// Shared message list + composer for doctor and patient.
 class ChatConversationPanel extends StatefulWidget {
@@ -27,6 +30,7 @@ class _ChatConversationPanelState extends State<ChatConversationPanel> {
   List<ChatMessage> _messages = [];
   bool _loading = true;
   bool _sending = false;
+  bool _uploadingImage = false;
   String? _error;
   RealtimeChannel? _channel;
 
@@ -108,6 +112,89 @@ class _ChatConversationPanelState extends State<ChatConversationPanel> {
     }
   }
 
+  Future<void> _pickAndSendImage() async {
+    if (_uploadingImage || _sending) return;
+    await showImageSourceSheet(
+      context,
+      title: 'Send a photo',
+      onPicked: (bytes, mime) async {
+        setState(() => _uploadingImage = true);
+        try {
+          final caption = _controller.text.trim();
+          _controller.clear();
+          final msg = await Backend.chat.sendImageMessage(
+            threadId: widget.threadId,
+            senderId: widget.currentUserId,
+            bytes: bytes,
+            contentType: mime,
+            caption: caption.isEmpty ? null : caption,
+          );
+          if (!mounted) return;
+          if (!_messages.any((m) => m.id == msg.id)) {
+            setState(() => _messages = [..._messages, msg]);
+          }
+          _scrollToBottom();
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not send image: $e')),
+          );
+        } finally {
+          if (mounted) setState(() => _uploadingImage = false);
+        }
+      },
+    );
+  }
+
+  Future<void> _openImageFullscreen(String path) async {
+    final url = await Backend.chat.signedChatImageUrl(path);
+    if (!mounted || url == null) return;
+    showChatImageFullscreen(context, url);
+  }
+
+  Widget _messageBubble(ChatMessage msg, bool mine) {
+    if (msg.hasImage) {
+      return Align(
+        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+        child: ChatImageBubble(
+          storagePath: msg.imageStoragePath!,
+          caption: msg.body,
+          mine: mine,
+          onTap: () => _openImageFullscreen(msg.imageStoragePath!),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+        ),
+        decoration: BoxDecoration(
+          color: mine
+              ? DoctorShellColors.chatBubbleMine
+              : Colors.grey.shade200,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(mine ? 16 : 4),
+            bottomRight: Radius.circular(mine ? 4 : 16),
+          ),
+        ),
+        child: Text(
+          msg.body,
+          style: TextStyle(
+            color: mine ? Colors.white : Colors.black87,
+            height: 1.35,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _channel?.unsubscribe();
@@ -140,6 +227,8 @@ class _ChatConversationPanelState extends State<ChatConversationPanel> {
       );
     }
 
+    final busy = _sending || _uploadingImage;
+
     return Column(
       children: [
         Expanded(
@@ -159,41 +248,12 @@ class _ChatConversationPanelState extends State<ChatConversationPanel> {
                   itemBuilder: (context, index) {
                     final msg = _messages[index];
                     final mine = msg.senderId == widget.currentUserId;
-                    return Align(
-                      alignment:
-                          mine ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-                        ),
-                        decoration: BoxDecoration(
-                          color: mine
-                              ? const Color(0xFF608266)
-                              : Colors.grey.shade200,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16),
-                            topRight: const Radius.circular(16),
-                            bottomLeft: Radius.circular(mine ? 16 : 4),
-                            bottomRight: Radius.circular(mine ? 4 : 16),
-                          ),
-                        ),
-                        child: Text(
-                          msg.body,
-                          style: TextStyle(
-                            color: mine ? Colors.white : Colors.black87,
-                            height: 1.35,
-                          ),
-                        ),
-                      ),
-                    );
+                    return _messageBubble(msg, mine);
                   },
                 ),
         ),
+        if (_uploadingImage)
+          const LinearProgressIndicator(minHeight: 2),
         Material(
           elevation: 6,
           child: SafeArea(
@@ -202,6 +262,11 @@ class _ChatConversationPanelState extends State<ChatConversationPanel> {
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
               child: Row(
                 children: [
+                  IconButton(
+                    tooltip: 'Photo',
+                    onPressed: busy ? null : _pickAndSendImage,
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _controller,
@@ -219,10 +284,10 @@ class _ChatConversationPanelState extends State<ChatConversationPanel> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   IconButton.filled(
-                    onPressed: _sending ? null : _send,
-                    icon: _sending
+                    onPressed: busy ? null : _send,
+                    icon: busy
                         ? const SizedBox(
                             width: 20,
                             height: 20,

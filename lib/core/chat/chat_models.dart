@@ -44,6 +44,7 @@ class ChatMessage {
     required this.senderId,
     required this.body,
     required this.createdAt,
+    this.imageStoragePath,
   });
 
   final String id;
@@ -51,4 +52,10 @@ class ChatMessage {
   final String senderId;
   final String body;
   final DateTime createdAt;
+  final String? imageStoragePath;
+
+  bool get hasImage =>
+      imageStoragePath != null && imageStoragePath!.trim().isNotEmpty;
+
+  bool get hasText => body.trim().isNotEmpty;
 }
