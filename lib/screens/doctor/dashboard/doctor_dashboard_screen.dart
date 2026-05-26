@@ -5,7 +5,11 @@ import '../../../core/backend/app_session.dart';
 import '../../../core/backend/backend.dart';
 import '../../../core/medication/dose_missed_sync.dart';
 import '../../../core/navigation/app_routes.dart';
-import '../../common/widgets/screen_helpers.dart';
+import '../../../core/ui/doctor_shell_colors.dart';
+import '../../../core/ui/doctor_ui_tokens.dart';
+import '../../../core/ui/doctor_ui_widgets.dart';
+import '../../../widgets/doctor_patient_tile.dart';
+import '../../../widgets/doctor_shell_scaffold.dart';
 
 class DoctorDashboardScreen extends StatefulWidget {
   const DoctorDashboardScreen({super.key});
@@ -69,113 +73,111 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     }
   }
 
+  void _openChat(String patientId) {
+    AppSession.selectedPatientId = patientId;
+    Navigator.pushNamed(
+      context,
+      AppRoutes.doctorPatientChat,
+      arguments: patientId,
+    );
+  }
+
+  void _openHistory(String patientId) {
+    AppSession.selectedPatientId = patientId;
+    Navigator.pushNamed(context, AppRoutes.doctorPatientHistory);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ScreenTemplate(
-      title: 'Doctor Dashboard',
-      subtitle: 'Overview for assigned patients',
-      child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () {
-                    setState(() {
-                      _loading = true;
-                      _error = null;
-                    });
-                    _load();
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            )
-          : Column(
-              children: [
-                InfoTile(
-                  label: 'Assigned Patients',
-                  value: '$_patientCount',
-                ),
-                InfoTile(
-                  label: 'Critical Missed Doses Today',
-                  value: '$_missedToday',
-                ),
-                const SizedBox(height: 14),
-                if (_patients.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Your patients',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._patients.map(
-                    (p) => Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.person, size: 20),
-                        ),
-                        title: Text(p.patientName),
-                        subtitle: const Text('Tap to message · history icon for doses'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              tooltip: 'Dose history',
-                              icon: const Icon(Icons.history_rounded),
-                              onPressed: () {
-                                AppSession.selectedPatientId = p.patientId;
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.doctorPatientHistory,
-                                );
-                              },
-                            ),
-                            const Icon(Icons.chevron_right),
-                          ],
-                        ),
-                        onTap: () {
-                          AppSession.selectedPatientId = p.patientId;
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.doctorPatientChat,
-                            arguments: p.patientId,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (_patientCount == 0) ...[
-                  FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.doctorPatientSetup)
-                          .then((_) => _load());
-                    },
-                    icon: const Icon(Icons.link),
-                    label: const Text('Link a patient with code'),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                QuickNavWrap(
-                  routes: {
-                    'Patient List': AppRoutes.doctorPatientList,
-                    if (_patientCount > 0)
-                      'Open Patient History': AppRoutes.doctorPatientHistory,
-                    'Settings': AppRoutes.settings,
-                  },
-                ),
-              ],
+    return DoctorShellScaffold(
+      title: 'Doctor dashboard',
+      subtitle: 'Assigned patients & alerts',
+      drawerRoute: AppRoutes.doctorDashboard,
+      onRefresh: _load,
+      body: Padding(
+        padding: const EdgeInsets.all(DoctorUiTokens.paddingScreen),
+        child: _buildBody(),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) return DoctorUi.loading();
+    if (_error != null) {
+      return DoctorUi.errorBox(_error!, onRetry: () {
+        setState(() {
+          _loading = true;
+          _error = null;
+        });
+        _load();
+      });
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            DoctorUi.statCard(
+              icon: Icons.people_outline_rounded,
+              label: 'Assigned patients',
+              value: '$_patientCount',
+              accent: DoctorShellColors.statPatients,
             ),
+            const SizedBox(width: DoctorUiTokens.gapItem),
+            DoctorUi.statCard(
+              icon: Icons.warning_amber_rounded,
+              label: 'Missed doses today',
+              value: '$_missedToday',
+              accent: DoctorShellColors.statMissed,
+            ),
+          ],
+        ),
+        const SizedBox(height: DoctorUiTokens.gapSection),
+        if (_patientCount == 0) ...[
+          DoctorUi.emptyState(
+            icon: Icons.person_add_alt_1_outlined,
+            title: 'No patients linked yet',
+            message:
+                'Ask your patient to tap the key icon on their home screen and share their phone number and 6-digit code.',
+          ),
+          DoctorUi.primaryButton(
+            label: 'Link a patient with code',
+            icon: Icons.link_rounded,
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.doctorPatientSetup)
+                  .then((_) => _load());
+            },
+          ),
+        ] else ...[
+          DoctorUi.sectionLabel('Your patients'),
+          ..._patients.map(
+            (p) => DoctorPatientTile(
+              patient: p,
+              selected: p.patientId == AppSession.selectedPatientId,
+              onMessage: () => _openChat(p.patientId),
+              onHistory: () => _openHistory(p.patientId),
+            ),
+          ),
+          const SizedBox(height: 8),
+          DoctorUi.primaryButton(
+            label: 'Link another patient',
+            icon: Icons.person_add_outlined,
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.doctorPatientSetup)
+                  .then((_) => _load());
+            },
+          ),
+        ],
+        const SizedBox(height: 24),
+        Text(
+          'Use ☰ menu for full patient list, dose history, and settings.',
+          textAlign: TextAlign.center,
+          style: DoctorUiTokens.bodyStyle().copyWith(
+            fontSize: DoctorUiTokens.caption,
+          ),
+        ),
+      ],
     );
   }
 }

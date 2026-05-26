@@ -47,5 +47,9 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Khayal uses your location to set your home area and show nearby clinics and hospitals on the map.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Khayal uses the camera to send photos in doctor chat and add pill photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Khayal uses your photo library to send images in chat and attach pill photos.</string>
 </dict>
 </plist>
